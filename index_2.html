@@ -3,15 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Agua Ypoti</title>
-<meta name="description" content="Control de bajas de agua de la estancia Ypoti">
+<title>Mantenimiento Ypoti</title>
+<meta name="description" content="Control de bajas de agua y bebederos de la estancia Ypoti">
 <meta name="theme-color" content="#0f6f8c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Agua Ypoti">
+<meta name="apple-mobile-web-app-title" content="Mantenimiento">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 /* Tres pantallas con barra de pestañas abajo: Cargar, Pendientes, Informe */
 :root{
@@ -45,48 +47,45 @@
 html,body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
-body{
-  background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:16px; line-height:1.45;
-  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));
-}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.45;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));}
 .wrap{max-width:560px;margin:0 auto;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:0 24px;}
 
-/* ---------- cabecera ---------- */
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);border-bottom:1px solid var(--line)}
 .top-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:11px 9px;}
-.top-in h1{font-family:var(--font-display);font-size:25px;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.01em}
-.top-in .quien{font-size:12px;color:var(--fg-soft);letter-spacing:.07em;text-transform:uppercase}
+.top-in h1{font-family:var(--font-display);font-size:24px;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.01em}
+.top-in .quien{font-size:11.5px;color:var(--fg-soft);letter-spacing:.07em;text-transform:uppercase}
 .estado{margin-left:auto;flex:none;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--fg-soft)}
 .punto{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none}
 .punto.off{background:var(--alerta)}
 
-/* ---------- comunes ---------- */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
 .campo{display:flex;flex-direction:column;gap:6px;margin-bottom:15px}
 .campo:last-child{margin-bottom:0}
 label{font-family:var(--font-display);font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-soft)}
-input[type=text],input[type=date],textarea,select{
+input[type=text],input[type=date],textarea{
   width:100%;min-width:0;font-family:var(--font-body);font-size:17px;color:var(--fg);
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:13px 12px;}
 textarea{resize:vertical;min-height:60px}
-input:focus-visible,textarea:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 h2.sec{font-family:var(--font-display);font-size:16px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-soft);margin:24px 0 0}
 .vacio{color:var(--fg-soft);font-size:14px;background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:18px;margin-top:12px;text-align:center}
 
 button.grande{width:100%;min-height:56px;border:none;border-radius:12px;background:var(--accent);color:var(--accent-fg);
   font-family:var(--font-display);font-size:21px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
 button.grande[disabled]{opacity:.5;cursor:not-allowed}
-button.chico{min-height:42px;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:10px;
-  font-family:var(--font-body);font-size:14px;cursor:pointer;padding:8px 14px}
+button.chico,a.chico{min-height:44px;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:10px;
+  font-family:var(--font-body);font-size:14px;cursor:pointer;padding:8px 14px;
+  display:flex;align-items:center;justify-content:center;text-decoration:none;text-align:center}
 button.chico.fuerte{background:var(--ok);border-color:var(--ok);color:#fff}
+button.chico.apagado{opacity:.45;pointer-events:none}
 
-/* ---------- tipos de problema ---------- */
 .tipos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .tipo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:66px;justify-content:center;
   background:var(--surface-2);border:2px solid var(--line);border-radius:12px;padding:10px 12px;
@@ -96,27 +95,45 @@ button.chico.fuerte{background:var(--ok);border-color:var(--ok);color:#fff}
 .tipo[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--surface-2));color:var(--c)}
 .tipo[aria-pressed="true"] em{color:var(--c)}
 
-/* ---------- ubicacion ---------- */
-.ubic{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
-.ubic .txt{flex:1;min-width:0;font-size:14px;color:var(--fg-soft)}
+.ubic{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:10px}
+.ubic .txt{min-width:0;font-size:14px;color:var(--fg-soft)}
 .ubic .txt b{color:var(--fg);font-family:var(--font-mono);font-size:13px;display:block;word-break:break-all}
+.ubic .botones{display:flex;gap:8px;flex-wrap:wrap}
+.ubic .botones button{flex:1 1 130px}
+#mapaPanel{margin-top:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+#mapa{height:300px;width:100%;background:var(--surface-2)}
+.mapa-barra{display:flex;gap:8px;flex-wrap:wrap;padding:10px}
+.mapa-barra > *{flex:1 1 130px}
+.mapa-nota{font-size:12.5px;color:var(--fg-soft);padding:0 10px 10px}
+.leaflet-container{font-family:var(--font-body)}
 
-/* ---------- lista de pendientes ---------- */
+.sinenviar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--alerta);
+  border-left:5px solid var(--alerta);border-radius:12px;padding:11px 13px;margin-top:14px}
+.sinenviar .txt{flex:1;min-width:0;font-size:14px}
+.sinenviar button{flex:none}
+
+.foto-caja{display:flex;gap:10px;align-items:center;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.foto-caja .txt{flex:1;min-width:0;font-size:14px;color:var(--fg-soft)}
+.foto-caja button{flex:none}
+.miniatura{width:60px;height:60px;border-radius:8px;object-fit:cover;flex:none;border:1px solid var(--line);background:var(--surface)}
+
 ul.lista{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
 li.item{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c,var(--line));border-radius:12px;padding:12px 13px}
-li.item .fila1{display:flex;gap:10px;align-items:baseline}
-li.item .pot{font-family:var(--font-display);font-size:21px;text-transform:uppercase;line-height:1.05;word-break:break-word}
-li.item time{margin-left:auto;flex:none;font-family:var(--font-mono);font-size:12px;color:var(--fg-soft);font-variant-numeric:tabular-nums}
+li.item .fila1{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+li.item .pot{font-family:var(--font-display);font-size:21px;text-transform:uppercase;line-height:1.05;word-break:break-word;min-width:0}
+li.item time{margin-left:auto;flex:none;font-family:var(--font-mono);font-size:12px;color:var(--fg-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
 li.item .tip{font-size:13.5px;font-weight:600;color:var(--c,var(--fg-soft));margin-top:1px}
 li.item .obs{font-size:14px;color:var(--fg-soft);margin-top:5px;word-break:break-word}
+li.item .fotos{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+li.item .fotos a{display:block;position:relative}
+li.item .fotos img{width:92px;height:92px;object-fit:cover;border-radius:9px;border:1px solid var(--line);background:var(--surface-2)}
+li.item .fotos span{display:block;font-size:10.5px;color:var(--fg-soft);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;text-align:center}
 li.item .acc{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
-li.item .acc button, li.item .acc a{flex:1 1 140px;text-align:center;text-decoration:none}
-a.chico{min-height:42px;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--fg);
-  border:1px solid var(--line);border-radius:10px;font-size:14px;padding:8px 14px}
-.resuelta{opacity:.62}
+li.item .acc > *{flex:1 1 140px}
+.resuelta{opacity:.72}
 .panel-fix{margin-top:11px;border-top:1px dashed var(--line);padding-top:11px;display:flex;flex-direction:column;gap:9px}
 
-/* ---------- informe ---------- */
+.rango{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .periodos{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .periodos button{flex:1 1 auto;min-height:40px;background:var(--surface);border:1px solid var(--line);border-radius:999px;
   color:var(--fg);font-size:14px;padding:6px 14px;cursor:pointer}
@@ -140,9 +157,8 @@ a.chico{min-height:42px;display:flex;align-items:center;justify-content:center;b
 .leyenda span{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-soft)}
 .leyenda i{width:12px;height:12px;border-radius:3px;background:var(--c);display:inline-block;flex:none}
 .acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.acciones button{flex:1 1 150px}
+.acciones > *{flex:1 1 150px}
 
-/* ---------- pestañas abajo ---------- */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom,0px);
   padding-left:max(0px,env(safe-area-inset-left,0px));
@@ -150,7 +166,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surf
 nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
 nav.tabs button{background:none;border:none;cursor:pointer;padding:11px 4px 13px;color:var(--fg-soft);
   font-family:var(--font-display);font-size:15px;letter-spacing:.07em;text-transform:uppercase;
-  display:flex;flex-direction:column;align-items:center;gap:3px;border-top:3px solid transparent;margin-top:-1px}
+  display:flex;align-items:center;justify-content:center;gap:6px;border-top:3px solid transparent;margin-top:-1px}
 nav.tabs button[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
 nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--malo);color:#fff;border-radius:999px;padding:0 6px;line-height:16px;min-width:16px}
 
@@ -160,7 +176,9 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 .aviso.error{background:var(--malo)}
 
 @media print{
-  header.top,nav.tabs,.periodos,.acciones,#pantallaCargar,#pantallaPendientes{display:none!important}
+  nav.tabs,.periodos,.acciones,#cajaRango,#pantallaCargar,#pantallaPendientes,.estado{display:none!important}
+  header.top{position:static;border:none}
+  #tituloInforme{display:block!important}
   body{background:#fff;color:#000;padding:0}
   .card{break-inside:avoid}
 }
@@ -171,8 +189,8 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 <header class="top">
   <div class="top-in">
     <div>
-      <h1>Agua Ypoti</h1>
-      <div class="quien" id="quienSoy">Estancia Ypoti</div>
+      <h1>Mantenimiento Ypoti</h1>
+      <div class="quien" id="quienSoy">Agua y bebederos</div>
     </div>
     <div class="estado"><span class="punto" id="punto"></span><span id="estadoTxt">Conectando</span></div>
   </div>
@@ -180,8 +198,12 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
 <div class="wrap">
 
-  <!-- ============ PANTALLA: CARGAR ============ -->
+  <!-- ============ CARGAR ============ -->
   <section id="pantallaCargar">
+    <div class="sinenviar" id="barraSinEnviar" hidden>
+      <div class="txt" id="sinEnviarTxt">0 cargas esperando señal</div>
+      <button type="button" class="chico" id="btnEnviarAhora">Enviar ahora</button>
+    </div>
     <form class="card" id="form" autocomplete="off">
       <div class="campo">
         <label for="potrero">Potrero</label>
@@ -200,10 +222,35 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       </div>
 
       <div class="campo">
+        <label>Foto del problema</label>
+        <div class="foto-caja">
+          <img class="miniatura" id="miniCarga" alt="" hidden>
+          <div class="txt" id="fotoTxt">Sacale una foto a la rotura</div>
+          <button type="button" class="chico" id="btnFoto">Sacar foto</button>
+        </div>
+        <input type="file" id="archivoFoto" accept="image/*" hidden>
+      </div>
+
+      <div class="campo">
         <label>Ubicación</label>
         <div class="ubic">
           <div class="txt" id="ubicTxt">Sin marcar todavía</div>
-          <button type="button" class="chico" id="btnUbic">Marcar</button>
+          <div class="botones">
+            <button type="button" class="chico" id="btnUbic">Estoy acá</button>
+            <button type="button" class="chico" id="btnMapa">Elegir en el mapa</button>
+          </div>
+        </div>
+        <div id="mapaPanel" hidden>
+          <div id="mapa"></div>
+          <div class="mapa-barra">
+            <button type="button" class="chico" id="btnSatelite">Ver mapa común</button>
+            <button type="button" class="chico fuerte" id="btnUsarPunto">Usar este punto</button>
+            <button type="button" class="chico" id="btnCerrarMapa">Cerrar</button>
+          </div>
+          <div class="mapa-barra" style="padding-top:0">
+            <input type="text" id="coordManual" placeholder="o pegá las coordenadas acá" style="flex:1 1 100%">
+          </div>
+          <p class="mapa-nota" id="mapaAviso">Tocá el mapa donde está el problema. No hace falta que estés ahí.</p>
         </div>
       </div>
 
@@ -219,27 +266,39 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
       <button class="grande" type="submit">Guardar</button>
     </form>
-    <p class="vacio" style="border:none;background:none;padding:10px 0 0">Lo que cargues lo ven todos los que tengan la app.</p>
   </section>
 
-  <!-- ============ PANTALLA: PENDIENTES ============ -->
+  <!-- ============ PENDIENTES ============ -->
   <section id="pantallaPendientes" hidden>
-    <div class="periodos" style="margin-top:14px">
+    <div class="periodos" id="filtroEstado" style="margin-top:14px">
       <button type="button" data-ver="PENDIENTE" aria-pressed="true">Pendientes</button>
-      <button type="button" data-ver="RESUELTO" aria-pressed="false">Resueltas</button>
+      <button type="button" data-ver="RESUELTO" aria-pressed="false">Arregladas</button>
     </div>
     <ul class="lista" id="listaTrabajos"></ul>
     <div class="vacio" id="vacioTrabajos" hidden>No hay nada acá por ahora.</div>
     <div class="acciones"><button class="chico" type="button" id="btnActualizar">Actualizar lista</button></div>
   </section>
 
-  <!-- ============ PANTALLA: INFORME ============ -->
+  <!-- ============ INFORME ============ -->
   <section id="pantallaInforme" hidden>
-    <div class="periodos" id="periodos" style="margin-top:14px">
-      <button type="button" data-per="7" aria-pressed="true">Última semana</button>
-      <button type="button" data-per="15" aria-pressed="false">15 días</button>
-      <button type="button" data-per="mes" aria-pressed="false">Este mes</button>
-      <button type="button" data-per="mesant" aria-pressed="false">Mes pasado</button>
+    <div class="card" id="cajaRango" style="margin-top:14px">
+      <div class="rango">
+        <div class="campo" style="margin:0">
+          <label for="desde">Desde</label>
+          <input type="date" id="desde">
+        </div>
+        <div class="campo" style="margin:0">
+          <label for="hasta">Hasta</label>
+          <input type="date" id="hasta">
+        </div>
+      </div>
+      <div class="periodos" id="periodos">
+        <button type="button" data-per="7" aria-pressed="true">Última semana</button>
+        <button type="button" data-per="15" aria-pressed="false">15 días</button>
+        <button type="button" data-per="mes" aria-pressed="false">Este mes</button>
+        <button type="button" data-per="mesant" aria-pressed="false">Mes pasado</button>
+      </div>
+      <p class="mapa-nota" style="padding:10px 0 0;margin:0">Tocá las fechas para elegir el período que quieras, o usá un atajo.</p>
     </div>
     <div id="informe"></div>
     <div class="acciones">
@@ -271,15 +330,17 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   var TIPOS = ["CAÑO ROTO","BAJA PRESIÓN","PILETA SECA","BOYA ROTA"];
   var VAR_COLOR = {"CAÑO ROTO":"--s1","BAJA PRESIÓN":"--s2","PILETA SECA":"--s3","BOYA ROTA":"--s4"};
-
   var K_AUTOR = "ypoti.autor", K_COLA = "ypoti.cola", K_CACHE = "ypoti.cache";
+  var CENTRO = [-23.314378, -56.699159];
 
-  var datos = [], cola = [], autor = "", ubic = null, tipoSel = "";
-  var verEstado = "PENDIENTE", periodo = "7", enLinea = true;
+  var datos = [], autor = "", ubic = null, tipoSel = "";
+  var fotoCarga = "", fotosArreglo = {}, destinoFoto = "carga";
+  var verEstado = "PENDIENTE", enLinea = true, sinEnviar = 0;
+  var mapa = null, marcador = null, capaSat = null, capaCalle = null, puntoTmp = null, viendoSat = true;
 
   function $(id){ return document.getElementById(id); }
-  function leer(k, d){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
-  function guardar(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  function leer(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+  function guardar(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
 
   function hoyISO(d){
@@ -293,126 +354,280 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     var d = new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
     return isNaN(d.getTime()) ? null : d;
   }
-  function corta(s){ var p = String(s||"").split("-"); return p.length===3 ? p[2]+"/"+p[1] : (s||""); }
-  function diasEntre(a, b){
-    var x = desdeISO(a), y = desdeISO(b);
-    if (!x || !y) return null;
-    return Math.round((y - x) / 86400000);
+  function corta(s){ var p=String(s||"").split("-"); return p.length===3 ? p[2]+"/"+p[1] : (s||""); }
+  function diasEntre(a,b){ var x=desdeISO(a), y=desdeISO(b); return (!x||!y)?null:Math.round((y-x)/86400000); }
+
+  // La planilla a veces devuelve la fecha larga. La dejamos siempre AAAA-MM-DD.
+  function normFecha(v){
+    var s = String(v==null?"":v).trim();
+    if (!s) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? "" : hoyISO(d);
   }
+  function normalizar(filas){
+    return (filas||[]).map(function(f){
+      f.FECHA = normFecha(f.FECHA);
+      f.FECHA_ARREGLO = normFecha(f.FECHA_ARREGLO);
+      if (String(f.LAT||"").indexOf(".") === -1){ f.LAT=""; f.LON=""; }  // coordenada sin punto = inservible
+      return f;
+    });
+  }
+  // El apóstrofo le avisa a la planilla que guarde el dato tal cual, sin interpretarlo.
+  function tal(v){ var s=String(v==null?"":v); return s?("'"+s):""; }
 
   function aviso(txt, malo){
-    var t = document.createElement("div");
-    t.className = "aviso" + (malo ? " error" : "");
-    t.setAttribute("role","status"); t.textContent = txt;
+    var t=document.createElement("div");
+    t.className="aviso"+(malo?" error":""); t.setAttribute("role","status"); t.textContent=txt;
     document.body.appendChild(t);
-    setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+    setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 3000);
   }
-
   function marcarEstado(ok, texto){
     enLinea = ok;
-    $("punto").className = "punto" + (ok ? "" : " off");
+    $("punto").className = "punto" + (ok?"":" off");
     $("estadoTxt").textContent = texto;
   }
 
-  // ---------------- servidor ----------------
+  // ---------- fotos ----------
+  function comprimir(archivo){
+    return new Promise(function(res, rej){
+      var fr = new FileReader();
+      fr.onerror = function(){ rej(new Error("no se pudo leer la foto")); };
+      fr.onload = function(){
+        var img = new Image();
+        img.onerror = function(){ rej(new Error("foto rara")); };
+        img.onload = function(){
+          var lado = 1200, w = img.width, h = img.height;
+          var k = Math.min(1, lado / Math.max(w, h));
+          var c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(w*k));
+          c.height = Math.max(1, Math.round(h*k));
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          res(c.toDataURL("image/jpeg", 0.62));
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(archivo);
+    });
+  }
+
+  // ---------- servidor ----------
   function traer(){
     return fetch(API + "?t=" + Date.now(), { method:"GET" })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (!j || !j.ok) throw new Error(j && j.error ? j.error : "respuesta rara");
-        datos = j.filas || [];
+        if (!j || !j.ok) throw new Error("respuesta rara");
+        datos = normalizar(j.filas || []);
         guardar(K_CACHE, datos);
         marcarEstado(true, "Al día");
         return datos;
       });
   }
-
   function mandar(payload){
     return fetch(API, { method:"POST", body: JSON.stringify(payload) })
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j || !j.ok) throw new Error(j && j.error ? j.error : "no se pudo guardar");
-        datos = j.filas || datos;
-        guardar(K_CACHE, datos);
+        if (j.filas){ datos = normalizar(j.filas); guardar(K_CACHE, datos); }
         return j;
       });
   }
+  // ---------- cola que aguanta sin internet ----------
+  // Las fotos son pesadas, así que van a la base del navegador (IndexedDB).
+  // Si el teléfono no la tiene, cae de vuelta a la memoria común.
+  var BD = null, sinBD = false;
 
-  function encolar(payload){
-    cola.push(payload); guardar(K_COLA, cola); pintarCuentas();
+  function abrirBD(){
+    return new Promise(function(res, rej){
+      if (BD) return res(BD);
+      if (sinBD || !window.indexedDB) return rej(new Error("sin base"));
+      var r;
+      try { r = indexedDB.open("ypoti", 1); } catch(e){ sinBD = true; return rej(e); }
+      r.onupgradeneeded = function(){ r.result.createObjectStore("cola", { keyPath:"k", autoIncrement:true }); };
+      r.onsuccess = function(){ BD = r.result; res(BD); };
+      r.onerror = function(){ sinBD = true; rej(r.error); };
+    });
+  }
+  function colaLS(){ return leer(K_COLA, []) || []; }
+
+  function colaAgregar(p){
+    return abrirBD().then(function(db){
+      return new Promise(function(res, rej){
+        var t = db.transaction("cola","readwrite");
+        t.objectStore("cola").add({ p: p });
+        t.oncomplete = function(){ res(); };
+        t.onerror = function(){ rej(t.error); };
+      });
+    }).catch(function(){
+      var c = colaLS(); c.push(p); guardar(K_COLA, c);
+    });
+  }
+  function colaLeer(){
+    return abrirBD().then(function(db){
+      return new Promise(function(res, rej){
+        var t = db.transaction("cola","readonly");
+        var q = t.objectStore("cola").getAll();
+        q.onsuccess = function(){ res(q.result || []); };
+        q.onerror = function(){ rej(q.error); };
+      });
+    }).catch(function(){
+      return colaLS().map(function(p, i){ return { k: i, p: p, ls: true }; });
+    });
+  }
+  function colaBorrar(item){
+    if (item.ls){
+      var c = colaLS(); c.shift(); guardar(K_COLA, c);
+      return Promise.resolve();
+    }
+    return abrirBD().then(function(db){
+      return new Promise(function(res, rej){
+        var t = db.transaction("cola","readwrite");
+        t.objectStore("cola").delete(item.k);
+        t.oncomplete = function(){ res(); };
+        t.onerror = function(){ rej(t.error); };
+      });
+    });
+  }
+
+  function pintarSinEnviar(){
+    var b = $("barraSinEnviar");
+    b.hidden = (sinEnviar === 0);
+    $("sinEnviarTxt").textContent = sinEnviar === 1
+      ? "1 carga esperando señal"
+      : sinEnviar + " cargas esperando señal";
+  }
+  function contarCola(){
+    return colaLeer().then(function(items){ sinEnviar = items.length; pintarSinEnviar(); return items.length; });
+  }
+
+  function encolar(p){
+    return colaAgregar(p).then(contarCola).then(function(){
+      aviso("Guardado en el teléfono. Se manda solo cuando haya señal.");
+    });
   }
 
   function vaciarCola(){
-    if (!cola.length) return Promise.resolve();
-    var uno = cola[0];
-    return mandar(uno).then(function(){
-      cola.shift(); guardar(K_COLA, cola); pintarCuentas();
-      return vaciarCola();
+    return colaLeer().then(function(items){
+      sinEnviar = items.length; pintarSinEnviar();
+      var i = 0;
+      function paso(){
+        if (i >= items.length) return Promise.resolve();
+        return mandar(items[i].p).then(function(){
+          return colaBorrar(items[i]).then(function(){
+            i++; sinEnviar = items.length - i; pintarSinEnviar();
+            return paso();
+          });
+        });
+      }
+      return paso();
     });
   }
 
   function sincronizar(){
     marcarEstado(enLinea, "Sincronizando");
-    return vaciarCola()
-      .then(traer)
-      .then(function(){ pintarTodo(); })
-      .catch(function(){
-        marcarEstado(false, cola.length ? (cola.length + " sin enviar") : "Sin conexión");
-        pintarTodo();
-      });
-  }
-
-  // ---------------- pantallas ----------------
-  function irA(nombre){
-    ["Cargar","Pendientes","Informe"].forEach(function(n){
-      $("pantalla"+n).hidden = (n !== nombre);
+    return vaciarCola().then(traer).then(pintarTodo).catch(function(){
+      marcarEstado(false, sinEnviar ? (sinEnviar+" sin enviar") : "Sin conexión");
+      pintarTodo();
     });
-    var bs = document.querySelectorAll("nav.tabs button");
-    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-selected", String(bs[i].getAttribute("data-pant") === nombre));
-    window.scrollTo(0,0);
-    if (nombre === "Pendientes") pintarTrabajos();
-    if (nombre === "Informe") pintarInforme();
   }
 
-  // ---------------- cargar ----------------
+  // ---------- navegación ----------
+  function irA(nombre){
+    ["Cargar","Pendientes","Informe"].forEach(function(n){ $("pantalla"+n).hidden = (n!==nombre); });
+    var bs = document.querySelectorAll("nav.tabs button");
+    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-selected", String(bs[i].getAttribute("data-pant")===nombre));
+    window.scrollTo(0,0);
+    if (nombre==="Pendientes") pintarTrabajos();
+    if (nombre==="Informe") pintarInforme();
+  }
+
+  // ---------- ubicación ----------
   function pedirUbicacion(silencioso){
-    if (!navigator.geolocation){
-      if (!silencioso) aviso("Este teléfono no da ubicación", true);
-      return;
-    }
+    if (!navigator.geolocation){ if(!silencioso) aviso("Este teléfono no da ubicación", true); return; }
     $("ubicTxt").textContent = "Buscando señal del GPS...";
     navigator.geolocation.getCurrentPosition(function(p){
-      ubic = { lat: p.coords.latitude.toFixed(6), lon: p.coords.longitude.toFixed(6) };
-      $("ubicTxt").innerHTML = "Ubicación marcada<b>" + esc(ubic.lat) + ", " + esc(ubic.lon) + "</b>";
-      $("btnUbic").textContent = "Marcar de nuevo";
+      ubic = { lat:p.coords.latitude.toFixed(6), lon:p.coords.longitude.toFixed(6) };
+      mostrarUbic();
+      $("btnUbic").textContent = "De nuevo";
     }, function(){
-      ubic = null;
-      $("ubicTxt").textContent = "No se pudo tomar la ubicación. Probá de nuevo al aire libre.";
-      $("btnUbic").textContent = "Marcar";
+      if (!silencioso) aviso("No se pudo tomar la ubicación. Usá el mapa.", true);
+      if (!ubic) $("ubicTxt").textContent = "Sin marcar. Podés elegirla en el mapa.";
+      $("btnUbic").textContent = "Estoy acá";
     }, { enableHighAccuracy:true, timeout:20000, maximumAge:0 });
   }
 
-  function limpiarForm(){
-    $("potrero").value = ""; $("obs").value = "";
-    var ts = $("tipos").querySelectorAll(".tipo");
-    for (var i=0;i<ts.length;i++) ts[i].setAttribute("aria-pressed","false");
-    tipoSel = "";
-    ubic = null;
-    $("ubicTxt").textContent = "Sin marcar todavía";
-    $("btnUbic").textContent = "Marcar";
+  function mostrarUbic(){
+    if (!ubic){ $("ubicTxt").textContent = "Sin marcar todavía"; return; }
+    $("ubicTxt").innerHTML = "Ubicación marcada<b>" + esc(ubic.lat) + ", " + esc(ubic.lon) + "</b>";
   }
 
-  // ---------------- pendientes ----------------
+  // ---------- elegir en el mapa ----------
+  function ponerPunto(lat, lon){
+    puntoTmp = { lat: Number(lat).toFixed(6), lon: Number(lon).toFixed(6) };
+    if (!mapa) return;
+    if (marcador) marcador.setLatLng([lat, lon]);
+    else marcador = L.marker([lat, lon], { draggable:true }).addTo(mapa)
+                     .on("dragend", function(e){ var p = e.target.getLatLng(); ponerPunto(p.lat, p.lng); });
+    $("mapaAviso").textContent = "Punto elegido: " + puntoTmp.lat + ", " + puntoTmp.lon;
+  }
+
+  function abrirMapa(){
+    $("mapaPanel").hidden = false;
+    if (!window.L){
+      $("mapaAviso").textContent = "El mapa necesita internet para dibujarse. Sin señal, pegá las coordenadas acá abajo.";
+      return;
+    }
+    if (!mapa){
+      var c = ubic ? [Number(ubic.lat), Number(ubic.lon)] : CENTRO;
+      mapa = L.map("mapa").setView(c, ubic ? 16 : 12);
+      capaSat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                { maxZoom:19, attribution:"Esri" }).addTo(mapa);
+      capaCalle = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                { maxZoom:19, attribution:"OpenStreetMap" });
+      mapa.on("click", function(e){ ponerPunto(e.latlng.lat, e.latlng.lng); });
+    }
+    setTimeout(function(){ mapa.invalidateSize(); }, 200);
+    if (ubic) ponerPunto(ubic.lat, ubic.lon);
+  }
+
+  function cerrarMapa(){ $("mapaPanel").hidden = true; }
+
+  function leerCoordManual(txt){
+    var m = String(txt||"").match(/(-?\d+[.,]\d+)\s*[, ]\s*(-?\d+[.,]\d+)/);
+    if (!m) return null;
+    var la = Number(m[1].replace(",", ".")), lo = Number(m[2].replace(",", "."));
+    if (isNaN(la) || isNaN(lo) || la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+    return { lat: la.toFixed(6), lon: lo.toFixed(6) };
+  }
+
+  function limpiarForm(){
+    $("potrero").value=""; $("obs").value="";
+    var ts=$("tipos").querySelectorAll(".tipo");
+    for (var i=0;i<ts.length;i++) ts[i].setAttribute("aria-pressed","false");
+    tipoSel=""; ubic=null; fotoCarga=""; puntoTmp=null;
+    cerrarMapa(); $("coordManual").value="";
+    $("ubicTxt").textContent="Sin marcar todavía"; $("btnUbic").textContent="Estoy acá";
+    $("fotoTxt").textContent="Sacale una foto a la rotura";
+    $("miniCarga").hidden=true; $("miniCarga").removeAttribute("src");
+    $("btnFoto").textContent="Sacar foto";
+  }
+
+  // ---------- pendientes ----------
   function pintarCuentas(){
-    var n = datos.filter(function(f){ return f.ESTADO !== "RESUELTO"; }).length;
-    var b = $("cuentaPend");
-    b.textContent = n; b.hidden = (n === 0);
-    if (!enLinea) marcarEstado(false, cola.length ? (cola.length + " sin enviar") : "Sin conexión");
+    var n = datos.filter(function(f){ return f.ESTADO!=="RESUELTO"; }).length;
+    var b = $("cuentaPend"); b.textContent=n; b.hidden=(n===0);
+  }
+
+  function bloqueFotos(f){
+    var h = "";
+    if (f.FOTO) h += '<a href="'+esc(f.FOTO)+'" target="_blank" rel="noopener"><img src="'+esc(f.FOTO)+'" alt="Foto del problema" loading="lazy"><span>Problema</span></a>';
+    if (f.FOTO_ARREGLO) h += '<a href="'+esc(f.FOTO_ARREGLO)+'" target="_blank" rel="noopener"><img src="'+esc(f.FOTO_ARREGLO)+'" alt="Foto del arreglo" loading="lazy"><span>Arreglado</span></a>';
+    return h ? '<div class="fotos">'+h+'</div>' : "";
   }
 
   function pintarTrabajos(){
     var filas = datos.filter(function(f){
-      return verEstado === "RESUELTO" ? f.ESTADO === "RESUELTO" : f.ESTADO !== "RESUELTO";
+      return verEstado==="RESUELTO" ? f.ESTADO==="RESUELTO" : f.ESTADO!=="RESUELTO";
     }).sort(function(a,b){ return String(b.FECHA).localeCompare(String(a.FECHA)); });
 
     var html = "";
@@ -421,217 +636,206 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       var cv = VAR_COLOR[f.CATEGORIA] || "--line";
       var mapa = (f.LAT && f.LON)
         ? '<a class="chico" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+esc(f.LAT)+','+esc(f.LON)+'">Cómo llegar</a>'
-        : '<a class="chico" aria-disabled="true" href="#" onclick="return false" style="opacity:.5">Sin ubicación</a>';
-      var acc = (f.ESTADO === "RESUELTO")
-        ? '<div class="obs">Arreglado por ' + esc(f.RESUELTO_POR || "—") + ' el ' + esc(corta(f.FECHA_ARREGLO)) +
-          (f.NOTA_ARREGLO ? ' · ' + esc(f.NOTA_ARREGLO) : '') + '</div><div class="acc">' + mapa + '</div>'
-        : '<div class="acc">' + mapa +
-          '<button class="chico fuerte" type="button" data-fix="'+esc(f.ID)+'">Ya lo arreglé</button></div>' +
-          '<div class="panel-fix" id="fix-'+esc(f.ID)+'" hidden>' +
-            '<input type="text" placeholder="Nota del arreglo (opcional)" id="nota-'+esc(f.ID)+'">' +
-            '<button class="chico fuerte" type="button" data-conf="'+esc(f.ID)+'">Confirmar arreglado</button>' +
-          '</div>';
+        : '<span class="chico apagado">Sin ubicación</span>';
+
+      var pie;
+      if (f.ESTADO === "RESUELTO"){
+        pie = '<div class="obs">Arreglado por '+esc(f.RESUELTO_POR||"—")+' el '+esc(corta(f.FECHA_ARREGLO))
+            + (f.NOTA_ARREGLO ? ' · '+esc(f.NOTA_ARREGLO) : '') + '</div>'
+            + bloqueFotos(f) + '<div class="acc">'+mapa+'</div>';
+      } else {
+        pie = bloqueFotos(f)
+            + '<div class="acc">'+mapa+'<button class="chico fuerte" type="button" data-fix="'+esc(f.ID)+'">Ya lo arreglé</button></div>'
+            + '<div class="panel-fix" id="fix-'+esc(f.ID)+'" hidden>'
+            +   '<div class="foto-caja">'
+            +     '<img class="miniatura" id="minifix-'+esc(f.ID)+'" alt="" hidden>'
+            +     '<div class="txt" id="txtfix-'+esc(f.ID)+'">Foto obligatoria del trabajo terminado</div>'
+            +     '<button class="chico" type="button" data-foto="'+esc(f.ID)+'">Sacar foto</button>'
+            +   '</div>'
+            +   '<input type="text" placeholder="Qué se hizo (opcional)" id="nota-'+esc(f.ID)+'">'
+            +   '<button class="chico fuerte" type="button" data-conf="'+esc(f.ID)+'">Confirmar arreglado</button>'
+            + '</div>';
+      }
 
       html += '<li class="item'+(f.ESTADO==="RESUELTO"?" resuelta":"")+'" style="--c:var('+cv+')">'
             +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span><time>'+esc(corta(f.FECHA))+'</time></div>'
             +   '<div class="tip">'+esc(f.CATEGORIA)+'</div>'
             +   (f.OBSERVACION ? '<div class="obs">'+esc(f.OBSERVACION)+'</div>' : '')
-            +   '<div class="obs">Cargado por '+esc(f.CARGADO_POR || "—")+'</div>'
-            +   acc
+            +   '<div class="obs">Cargado por '+esc(f.CARGADO_POR||"—")+'</div>'
+            +   pie
             + '</li>';
     }
     $("listaTrabajos").innerHTML = html;
-    $("vacioTrabajos").hidden = filas.length > 0;
-    $("vacioTrabajos").textContent = verEstado === "RESUELTO"
+    $("vacioTrabajos").hidden = filas.length>0;
+    $("vacioTrabajos").textContent = verEstado==="RESUELTO"
       ? "Todavía no hay trabajos marcados como arreglados."
       : "No hay nada pendiente. Todo arreglado.";
   }
 
-  // ---------------- informe ----------------
-  function rango(){
+  // ---------- informe ----------
+  // El período sale siempre de los dos casilleros de fecha. Los atajos solo los completan.
+  function fechasAtajo(cual){
     var hoy = new Date();
-    if (periodo === "mes"){
-      var i1 = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-      return { desde: hoyISO(i1), hasta: hoyISO(hoy), nombre: "Este mes" };
-    }
-    if (periodo === "mesant"){
-      var a1 = new Date(hoy.getFullYear(), hoy.getMonth()-1, 1);
-      var a2 = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
-      return { desde: hoyISO(a1), hasta: hoyISO(a2), nombre: "Mes pasado" };
-    }
-    var n = Number(periodo);
-    var d = new Date(hoy.getTime() - (n-1)*86400000);
-    return { desde: hoyISO(d), hasta: hoyISO(hoy), nombre: "Últimos " + n + " días" };
+    if (cual==="mes") return [hoyISO(new Date(hoy.getFullYear(),hoy.getMonth(),1)), hoyISO(hoy)];
+    if (cual==="mesant") return [hoyISO(new Date(hoy.getFullYear(),hoy.getMonth()-1,1)),
+                                 hoyISO(new Date(hoy.getFullYear(),hoy.getMonth(),0))];
+    var n = Number(cual) || 7;
+    return [hoyISO(new Date(hoy.getTime()-(n-1)*86400000)), hoyISO(hoy)];
   }
-
+  function rango(){
+    var d = $("desde").value, h = $("hasta").value;
+    if (!d || !h){ var f = fechasAtajo("7"); d = d || f[0]; h = h || f[1]; }
+    if (d > h){ var t = d; d = h; h = t; }   // si las puso al revés, las damos vuelta
+    return { desde:d, hasta:h, nombre:"Del "+corta(d)+" al "+corta(h) };
+  }
   function delPeriodo(){
     var r = rango();
-    return datos.filter(function(f){
-      var x = String(f.FECHA || "");
-      return x >= r.desde && x <= r.hasta;
-    });
+    return datos.filter(function(f){ var x=String(f.FECHA||""); return x>=r.desde && x<=r.hasta; });
   }
-
-  function barras(items, colorVar){
+  function barras(items, colorFijo){
     if (!items.length) return '<div class="vacio">Sin datos en este período.</div>';
-    var max = 0;
-    items.forEach(function(it){ if (it.valor > max) max = it.valor; });
-    if (max === 0) max = 1;
-    var h = '<div class="barras">';
+    var max=0; items.forEach(function(it){ if(it.valor>max) max=it.valor; });
+    if (!max) max=1;
+    var h='<div class="barras">';
     for (var i=0;i<items.length;i++){
-      var it = items[i];
-      var cv = colorVar || it.colorVar || "--s1";
-      var pct = Math.round(it.valor / max * 100);
+      var it=items[i], cv=colorFijo||it.colorVar||"--s1";
       h += '<div class="barra" style="--c:var('+cv+')">'
-         +   '<span class="et">'+esc(it.etiqueta)+'</span>'
-         +   '<span class="num">'+it.valor+'</span>'
-         +   '<span class="pista"><span class="relleno" style="width:'+pct+'%"></span></span>'
+         +   '<span class="et">'+esc(it.etiqueta)+'</span><span class="num">'+it.valor+'</span>'
+         +   '<span class="pista"><span class="relleno" style="width:'+Math.round(it.valor/max*100)+'%"></span></span>'
          + '</div>';
     }
-    return h + '</div>';
+    return h+'</div>';
   }
 
   function pintarInforme(){
-    var r = rango(), filas = delPeriodo();
-    var resueltas = filas.filter(function(f){ return f.ESTADO === "RESUELTO"; });
-    var pend = filas.filter(function(f){ return f.ESTADO !== "RESUELTO"; });
+    var r = rango(), filas = delPeriodo(), i;
+    var resueltas = filas.filter(function(f){ return f.ESTADO==="RESUELTO"; });
+    var pend = filas.filter(function(f){ return f.ESTADO!=="RESUELTO"; });
 
-    var dias = [], i;
+    var dias=[];
     for (i=0;i<resueltas.length;i++){
       var d = diasEntre(resueltas[i].FECHA, resueltas[i].FECHA_ARREGLO);
-      if (d !== null && d >= 0) dias.push(d);
+      if (d!==null && d>=0) dias.push(d);
     }
-    var prom = dias.length ? (dias.reduce(function(a,b){return a+b;},0)/dias.length) : null;
+    var prom = dias.length ? dias.reduce(function(a,b){return a+b;},0)/dias.length : null;
 
-    // por tipo
     var porTipo = TIPOS.map(function(t){
-      return { etiqueta: t, valor: filas.filter(function(f){ return f.CATEGORIA === t; }).length, colorVar: VAR_COLOR[t] };
-    }).filter(function(x){ return x.valor > 0; });
+      return { etiqueta:t, valor:filas.filter(function(f){ return f.CATEGORIA===t; }).length, colorVar:VAR_COLOR[t] };
+    }).filter(function(x){ return x.valor>0; });
 
-    // por potrero (los 8 peores)
-    var mapa = {};
-    filas.forEach(function(f){ var p = f.POTRERO || "—"; mapa[p] = (mapa[p]||0)+1; });
-    var porPotrero = Object.keys(mapa).map(function(p){ return { etiqueta: p, valor: mapa[p] }; })
-      .sort(function(a,b){ return b.valor - a.valor; }).slice(0,8);
+    var mapa={};
+    filas.forEach(function(f){ var p=f.POTRERO||"—"; mapa[p]=(mapa[p]||0)+1; });
+    var porPotrero = Object.keys(mapa).map(function(p){ return {etiqueta:p, valor:mapa[p]}; })
+      .sort(function(a,b){ return b.valor-a.valor; }).slice(0,8);
 
-    // por semana
-    var semanas = [], cur = desdeISO(r.desde), fin = desdeISO(r.hasta);
-    if (cur && fin){
-      var guardia = 0;
-      while (cur <= fin && guardia < 60){
-        var ini = new Date(cur.getTime());
-        var ter = new Date(cur.getTime() + 6*86400000);
-        if (ter > fin) ter = new Date(fin.getTime());
-        var a = hoyISO(ini), b = hoyISO(ter);
-        semanas.push({ desde:a, hasta:b, valor: filas.filter(function(f){ var x=String(f.FECHA||""); return x>=a && x<=b; }).length });
-        cur = new Date(ter.getTime() + 86400000);
-        guardia++;
-      }
+    var semanas=[], cur=desdeISO(r.desde), fin=desdeISO(r.hasta), g=0;
+    while (cur && fin && cur<=fin && g<60){
+      var ter = new Date(cur.getTime()+6*86400000);
+      if (ter>fin) ter = new Date(fin.getTime());
+      var a=hoyISO(cur), b=hoyISO(ter);
+      semanas.push({ desde:a, valor: filas.filter(function(f){ var x=String(f.FECHA||""); return x>=a&&x<=b; }).length });
+      cur = new Date(ter.getTime()+86400000); g++;
     }
-    var maxSem = 0; semanas.forEach(function(s){ if (s.valor>maxSem) maxSem = s.valor; });
-    if (maxSem === 0) maxSem = 1;
+    var maxSem=0; semanas.forEach(function(s){ if(s.valor>maxSem) maxSem=s.valor; });
+    if(!maxSem) maxSem=1;
 
-    var hSem = '';
-    if (semanas.length > 1){
+    var hSem="";
+    if (semanas.length>1){
       hSem = '<div class="card"><h2 class="sec" style="margin:0">Cómo viene semana a semana</h2><div class="semanas">';
       for (i=0;i<semanas.length;i++){
-        var s = semanas[i];
-        hSem += '<div class="semana">'
-              +   '<span class="n">'+s.valor+'</span>'
-              +   '<span class="col" style="height:'+Math.max(2, Math.round(s.valor/maxSem*78))+'%"></span>'
-              +   '<span class="f">'+corta(s.desde)+'</span>'
-              + '</div>';
+        hSem += '<div class="semana"><span class="n">'+semanas[i].valor+'</span>'
+              + '<span class="col" style="height:'+Math.max(2,Math.round(semanas[i].valor/maxSem*78))+'%"></span>'
+              + '<span class="f">'+corta(semanas[i].desde)+'</span></div>';
       }
       hSem += '</div></div>';
     }
 
     var viejas = pend.slice().sort(function(a,b){ return String(a.FECHA).localeCompare(String(b.FECHA)); }).slice(0,5);
-    var hViejas = '';
+    var hViejas="";
     if (viejas.length){
       hViejas = '<div class="card"><h2 class="sec" style="margin:0">Lo que sigue sin arreglarse</h2><ul class="lista">';
       for (i=0;i<viejas.length;i++){
-        var v = viejas[i], dd = diasEntre(v.FECHA, hoyISO());
+        var v=viejas[i], dd=diasEntre(v.FECHA, hoyISO());
         hViejas += '<li class="item" style="--c:var('+(VAR_COLOR[v.CATEGORIA]||"--line")+')">'
-                +    '<div class="fila1"><span class="pot">'+esc(v.POTRERO)+'</span><time>'+(dd!==null?dd+" días":corta(v.FECHA))+'</time></div>'
-                +    '<div class="tip">'+esc(v.CATEGORIA)+'</div>'
-                + '</li>';
+                +    '<div class="fila1"><span class="pot">'+esc(v.POTRERO)+'</span><time>'+(dd!==null?dd+" días":esc(corta(v.FECHA)))+'</time></div>'
+                +    '<div class="tip">'+esc(v.CATEGORIA)+'</div></li>';
       }
       hViejas += '</ul></div>';
     }
 
-    var leyenda = '<div class="leyenda">';
+    var leyenda='<div class="leyenda">';
     TIPOS.forEach(function(t){ leyenda += '<span style="--c:var('+VAR_COLOR[t]+')"><i></i>'+esc(t)+'</span>'; });
     leyenda += '</div>';
 
     $("informe").innerHTML =
-        '<div class="tiles">'
+        '<h2 class="sec" id="tituloInforme" style="margin-top:18px">'+esc(r.nombre)+'</h2>'
+      + '<div class="tiles">'
       +   '<div class="tile"><b>'+filas.length+'</b><span>Bajas cargadas</span></div>'
       +   '<div class="tile"><b>'+resueltas.length+'</b><span>Arregladas</span></div>'
       +   '<div class="tile"><b>'+pend.length+'</b><span>Sin arreglar</span></div>'
       +   '<div class="tile"><b>'+(prom===null?"—":prom.toFixed(1))+'</b><span>Días promedio de arreglo</span></div>'
       + '</div>'
-      + '<div class="card"><h2 class="sec" style="margin:0">Por tipo de problema</h2>'
-      +   barras(porTipo, null) + leyenda + '</div>'
-      + '<div class="card"><h2 class="sec" style="margin:0">Potreros que más dieron problema</h2>'
-      +   barras(porPotrero, "--s1") + '</div>'
-      + hSem
-      + hViejas;
+      + '<div class="card"><h2 class="sec" style="margin:0">Por tipo de problema</h2>'+barras(porTipo,null)+leyenda+'</div>'
+      + '<div class="card"><h2 class="sec" style="margin:0">Potreros que más dieron problema</h2>'+barras(porPotrero,"--s1")+'</div>'
+      + hSem + hViejas;
   }
 
   function textoInforme(){
-    var r = rango(), filas = delPeriodo();
-    var resueltas = filas.filter(function(f){ return f.ESTADO === "RESUELTO"; }).length;
-    var t = "BAJAS DE AGUA - YPOTI\n" + r.nombre + " (" + corta(r.desde) + " al " + corta(r.hasta) + ")\n\n";
-    t += "Cargadas: " + filas.length + "\nArregladas: " + resueltas + "\nSin arreglar: " + (filas.length - resueltas) + "\n\n";
+    var r=rango(), filas=delPeriodo();
+    var res = filas.filter(function(f){ return f.ESTADO==="RESUELTO"; }).length;
+    var t = "MANTENIMIENTO YPOTI - AGUA\n"+r.nombre+" ("+corta(r.desde)+" al "+corta(r.hasta)+")\n\n";
+    t += "Cargadas: "+filas.length+"\nArregladas: "+res+"\nSin arreglar: "+(filas.length-res)+"\n\n";
     TIPOS.forEach(function(tp){
-      var n = filas.filter(function(f){ return f.CATEGORIA === tp; }).length;
-      if (n) t += tp + ": " + n + "\n";
+      var n = filas.filter(function(f){ return f.CATEGORIA===tp; }).length;
+      if (n) t += tp+": "+n+"\n";
     });
-    var pend = filas.filter(function(f){ return f.ESTADO !== "RESUELTO"; });
+    var pend = filas.filter(function(f){ return f.ESTADO!=="RESUELTO"; });
     if (pend.length){
       t += "\nPENDIENTES:\n";
       pend.sort(function(a,b){ return String(a.FECHA).localeCompare(String(b.FECHA)); });
-      pend.forEach(function(f){ t += "- " + f.POTRERO + " - " + f.CATEGORIA + " (" + corta(f.FECHA) + ")\n"; });
+      pend.forEach(function(f){ t += "- "+f.POTRERO+" - "+f.CATEGORIA+" ("+corta(f.FECHA)+")\n"; });
     }
     return t;
   }
 
   function copiar(txt, ok){
-    if (navigator.clipboard && navigator.clipboard.writeText){
+    if (navigator.clipboard && navigator.clipboard.writeText)
       navigator.clipboard.writeText(txt).then(function(){ aviso(ok); }, function(){ seleccionar(txt); });
-    } else seleccionar(txt);
+    else seleccionar(txt);
   }
   function seleccionar(txt){
-    var ta = document.createElement("textarea");
-    ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0";
+    var ta=document.createElement("textarea");
+    ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0";
     document.body.appendChild(ta); ta.focus(); ta.select();
     aviso("Texto seleccionado: tocá Copiar");
-    setTimeout(function(){ if (ta.parentNode) ta.parentNode.removeChild(ta); }, 6000);
+    setTimeout(function(){ if(ta.parentNode) ta.parentNode.removeChild(ta); }, 6000);
   }
 
-  function pintarTodo(){ pintarCuentas(); pintarTrabajos(); if (!$("pantallaInforme").hidden) pintarInforme(); }
+  function pintarTodo(){ pintarCuentas(); pintarTrabajos(); if(!$("pantallaInforme").hidden) pintarInforme(); }
 
-  // ---------------- arranque ----------------
-  var ops = "";
+  // ---------- arranque ----------
+  var ops="";
   for (var k=0;k<POTREROS.length;k++) ops += '<option value="'+esc(POTREROS[k])+'"></option>';
   $("potreros").innerHTML = ops;
 
-  datos = leer(K_CACHE, []) || [];
-  cola  = leer(K_COLA, []) || [];
+  datos = normalizar(leer(K_CACHE, []) || []);
   autor = leer(K_AUTOR, "") || "";
   $("fecha").value = hoyISO();
+  var ini = fechasAtajo("7");
+  $("desde").value = ini[0];
+  $("hasta").value = ini[1];
 
   if (!autor){
     autor = (window.prompt("¿Cómo te llamás? (se guarda en este teléfono)") || "").trim();
     if (autor) guardar(K_AUTOR, autor);
   }
-  $("quienSoy").textContent = autor ? ("Estancia Ypoti · " + autor) : "Estancia Ypoti";
+  $("quienSoy").textContent = autor ? ("Agua y bebederos · "+autor) : "Agua y bebederos";
 
   pintarCuentas();
-  sincronizar();
+  contarCola().then(sincronizar, sincronizar);
   setTimeout(function(){ pedirUbicacion(true); }, 600);
 
-  // eventos
+  // ---------- eventos ----------
   document.querySelector("nav.tabs").addEventListener("click", function(ev){
     var b = ev.target.closest ? ev.target.closest("button[data-pant]") : null;
     if (b) irA(b.getAttribute("data-pant"));
@@ -648,6 +852,56 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   });
 
   $("btnUbic").addEventListener("click", function(){ pedirUbicacion(false); });
+  $("btnMapa").addEventListener("click", function(){ abrirMapa(); });
+  $("btnCerrarMapa").addEventListener("click", function(){ cerrarMapa(); });
+
+  $("btnSatelite").addEventListener("click", function(){
+    if (!mapa) return;
+    viendoSat = !viendoSat;
+    if (viendoSat){ mapa.removeLayer(capaCalle); capaSat.addTo(mapa); this.textContent = "Ver mapa común"; }
+    else { mapa.removeLayer(capaSat); capaCalle.addTo(mapa); this.textContent = "Ver satélite"; }
+  });
+
+  $("coordManual").addEventListener("input", function(){
+    var p = leerCoordManual(this.value);
+    if (!p) return;
+    puntoTmp = p;
+    if (mapa){ mapa.setView([Number(p.lat), Number(p.lon)], 16); ponerPunto(p.lat, p.lon); }
+    else $("mapaAviso").textContent = "Punto elegido: " + p.lat + ", " + p.lon;
+  });
+
+  $("btnUsarPunto").addEventListener("click", function(){
+    if (!puntoTmp){ aviso("Tocá el mapa para elegir el lugar", true); return; }
+    ubic = { lat: puntoTmp.lat, lon: puntoTmp.lon };
+    mostrarUbic(); cerrarMapa();
+    aviso("Ubicación guardada");
+  });
+
+  $("btnEnviarAhora").addEventListener("click", function(){ sincronizar(); });
+
+  $("btnFoto").addEventListener("click", function(){ destinoFoto="carga"; $("archivoFoto").click(); });
+
+  $("archivoFoto").addEventListener("change", function(){
+    var archivo = this.files && this.files[0];
+    this.value = "";
+    if (!archivo) return;
+    var destino = destinoFoto;
+    aviso("Procesando la foto...");
+    comprimir(archivo).then(function(b64){
+      if (destino === "carga"){
+        fotoCarga = b64;
+        $("miniCarga").src = b64; $("miniCarga").hidden = false;
+        $("fotoTxt").textContent = "Foto lista";
+        $("btnFoto").textContent = "Cambiar";
+      } else {
+        fotosArreglo[destino] = b64;
+        var mini = $("minifix-"+destino), txt = $("txtfix-"+destino);
+        if (mini){ mini.src = b64; mini.hidden = false; }
+        if (txt) txt.textContent = "Foto lista";
+      }
+      aviso("Foto lista");
+    }).catch(function(){ aviso("No se pudo usar esa foto", true); });
+  });
 
   $("form").addEventListener("submit", function(ev){
     ev.preventDefault();
@@ -655,66 +909,65 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     if (!pot){ $("potrero").focus(); return; }
     if (!tipoSel){ aviso("Elegí qué problema hay", true); return; }
 
-    var fila = {
-      id: String(Date.now()) + String(Math.floor(Math.random()*1000)),
-      fecha: $("fecha").value || hoyISO(),
-      potrero: pot.toUpperCase(),
-      categoria: tipoSel,
-      obs: $("obs").value.trim(),
-      lat: ubic ? ubic.lat : "",
-      lon: ubic ? ubic.lon : "",
-      autor: autor
-    };
-    var payload = { accion:"nueva", fila: fila };
+    var id = String(Date.now())+String(Math.floor(Math.random()*1000));
+    var fecha = $("fecha").value || hoyISO();
+    var lat = ubic?ubic.lat:"", lon = ubic?ubic.lon:"";
+    var obs = $("obs").value.trim();
 
-    // se muestra enseguida, aunque el envío tarde
-    datos.push({ ID:fila.id, FECHA:fila.fecha, POTRERO:fila.potrero, CATEGORIA:fila.categoria,
-                 OBSERVACION:fila.obs, LAT:fila.lat, LON:fila.lon, CARGADO_POR:fila.autor,
-                 ESTADO:"PENDIENTE", RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"" });
+    var payload = { accion:"nueva", fila:{
+      id:tal(id), fecha:tal(fecha), potrero:pot.toUpperCase(), categoria:tipoSel,
+      obs:obs, lat:tal(lat), lon:tal(lon), autor:autor, foto:fotoCarga
+    }};
+
+    datos.push({ ID:id, FECHA:fecha, POTRERO:pot.toUpperCase(), CATEGORIA:tipoSel, OBSERVACION:obs,
+                 LAT:lat, LON:lon, CARGADO_POR:autor, ESTADO:"PENDIENTE",
+                 RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"", FOTO:"", FOTO_ARREGLO:"" });
     guardar(K_CACHE, datos);
-    limpiarForm();
-    pintarCuentas();
-    aviso("Guardado: " + fila.potrero);
+    limpiarForm(); pintarCuentas();
+    aviso("Guardado: " + pot.toUpperCase());
 
-    mandar(payload).then(function(){
-      marcarEstado(true, "Al día"); pintarTodo();
-    }).catch(function(){
-      encolar(payload); marcarEstado(false, cola.length + " sin enviar");
-    });
+    mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
+      .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
   });
 
-  document.querySelector("#pantallaPendientes .periodos").addEventListener("click", function(ev){
+  $("filtroEstado").addEventListener("click", function(ev){
     var b = ev.target.closest ? ev.target.closest("button[data-ver]") : null;
     if (!b) return;
     verEstado = b.getAttribute("data-ver");
     var bs = this.querySelectorAll("button");
-    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", String(bs[i] === b));
+    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", String(bs[i]===b));
     pintarTrabajos();
   });
 
   $("listaTrabajos").addEventListener("click", function(ev){
     var abrir = ev.target.closest ? ev.target.closest("button[data-fix]") : null;
     if (abrir){
-      var p = $("fix-" + abrir.getAttribute("data-fix"));
+      var p = $("fix-"+abrir.getAttribute("data-fix"));
       if (p) p.hidden = !p.hidden;
       return;
     }
+    var pedirFoto = ev.target.closest ? ev.target.closest("button[data-foto]") : null;
+    if (pedirFoto){ destinoFoto = pedirFoto.getAttribute("data-foto"); $("archivoFoto").click(); return; }
+
     var conf = ev.target.closest ? ev.target.closest("button[data-conf]") : null;
     if (conf){
       var id = conf.getAttribute("data-conf");
-      var nota = ($("nota-"+id) ? $("nota-"+id).value.trim() : "");
-      var payload = { accion:"resolver", id:id, resueltoPor:autor, notaArreglo:nota, fechaArreglo:hoyISO() };
+      if (!fotosArreglo[id]){ aviso("Falta la foto del trabajo terminado", true); return; }
+      var nota = $("nota-"+id) ? $("nota-"+id).value.trim() : "";
+      var payload = { accion:"resolver", id:id, resueltoPor:autor, notaArreglo:nota,
+                      fechaArreglo:tal(hoyISO()), foto:fotosArreglo[id] };
       for (var i=0;i<datos.length;i++){
         if (String(datos[i].ID) === String(id)){
-          datos[i].ESTADO = "RESUELTO"; datos[i].RESUELTO_POR = autor;
-          datos[i].FECHA_ARREGLO = hoyISO(); datos[i].NOTA_ARREGLO = nota;
+          datos[i].ESTADO="RESUELTO"; datos[i].RESUELTO_POR=autor;
+          datos[i].FECHA_ARREGLO=hoyISO(); datos[i].NOTA_ARREGLO=nota;
         }
       }
+      delete fotosArreglo[id];
       guardar(K_CACHE, datos);
       pintarTrabajos(); pintarCuentas();
       aviso("Marcado como arreglado");
       mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
-        .catch(function(){ encolar(payload); marcarEstado(false, cola.length + " sin enviar"); });
+        .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
     }
   });
 
@@ -723,17 +976,26 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   $("periodos").addEventListener("click", function(ev){
     var b = ev.target.closest ? ev.target.closest("button[data-per]") : null;
     if (!b) return;
-    periodo = b.getAttribute("data-per");
+    var f = fechasAtajo(b.getAttribute("data-per"));
+    $("desde").value = f[0]; $("hasta").value = f[1];
     var bs = this.querySelectorAll("button");
-    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", String(bs[i] === b));
+    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", String(bs[i]===b));
     pintarInforme();
+  });
+
+  ["desde","hasta"].forEach(function(id){
+    $(id).addEventListener("change", function(){
+      var bs = $("periodos").querySelectorAll("button");
+      for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed","false");
+      pintarInforme();
+    });
   });
 
   $("btnCopiarInf").addEventListener("click", function(){ copiar(textoInforme(), "Informe copiado"); });
   $("btnImprimir").addEventListener("click", function(){ window.print(); });
 
   window.addEventListener("online", function(){ sincronizar(); });
-  window.addEventListener("offline", function(){ marcarEstado(false, "Sin conexión"); });
+  window.addEventListener("offline", function(){ marcarEstado(false,"Sin conexión"); });
 })();
 </script>
 
