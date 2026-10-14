@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Carga de bajas de agua por potrero - Estancia Ypoti">
+<meta name="theme-color" content="#0f6f8c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bajas de Agua">
+<style>
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>Bajas de Agua Ypoti</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una sola columna, cabecera fija, formulario grande para usar con una mano en el campo */
+:root{
+  --bg:#f3f1ec;
+  --surface:#ffffff;
+  --surface-2:#e9e6df;
+  --fg:#1d2420;
+  --fg-soft:#5e6660;
+  --line:#d4cfc5;
+  --accent:#0f6f8c;
+  --accent-fg:#ffffff;
+  --ok:#2f7d4f;
+  --warn:#b26a00;
+  --crit:#b03028;
+  --cat-cano:#b03028;
+  --cat-presion:#b26a00;
+  --cat-pileta:#8a5a2b;
+  --cat-boya:#4a5a8a;
+  --font-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-body:"Barlow","Helvetica Neue",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#13181a;--surface:#1c2325;--surface-2:#262e31;--fg:#e8ebe8;--fg-soft:#9aa5a2;
+    --line:#333d40;--accent:#3fa8c7;--accent-fg:#06252e;--ok:#5fbe84;--warn:#e0a24a;--crit:#e2756c;
+    --cat-cano:#e2756c;--cat-presion:#e0a24a;--cat-pileta:#c99a6a;--cat-boya:#8fa3d9;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13181a;--surface:#1c2325;--surface-2:#262e31;--fg:#e8ebe8;--fg-soft:#9aa5a2;
+  --line:#333d40;--accent:#3fa8c7;--accent-fg:#06252e;--ok:#5fbe84;--warn:#e0a24a;--crit:#e2756c;
+  --cat-cano:#e2756c;--cat-presion:#e0a24a;--cat-pileta:#c99a6a;--cat-boya:#8fa3d9;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+
+header.top{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+.top-inner{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 10px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;flex-direction:column;gap:1px;min-width:0}
+.brand h1{font-family:var(--font-display);font-size:26px;line-height:1;letter-spacing:.01em;margin:0;text-transform:uppercase}
+.brand span{font-size:12px;color:var(--fg-soft);letter-spacing:.09em;text-transform:uppercase}
+.badge{margin-left:auto;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.badge b{font-family:var(--font-mono);font-size:20px;line-height:1;font-variant-numeric:tabular-nums}
+.badge small{font-size:10px;color:var(--fg-soft);letter-spacing:.08em;text-transform:uppercase}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+label{font-family:var(--font-display);font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-soft)}
+input[type=text],input[type=date],textarea,select{
+  width:100%;min-width:0;font-family:var(--font-body);font-size:17px;color:var(--fg);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:13px 12px;
+}
+textarea{resize:vertical;min-height:62px}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cat{
+  display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:64px;justify-content:center;
+  background:var(--surface-2);border:2px solid var(--line);border-radius:12px;padding:10px 12px;
+  font-family:var(--font-display);font-size:17px;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--fg);cursor:pointer;text-align:left;line-height:1.05;
+}
+.cat em{font-family:var(--font-body);font-style:normal;font-size:11px;letter-spacing:.04em;text-transform:none;color:var(--fg-soft)}
+.cat[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface-2));color:var(--c)}
+.cat[aria-pressed="true"] em{color:var(--c)}
+.cat:nth-child(1){--c:var(--cat-cano)}
+.cat:nth-child(2){--c:var(--cat-presion)}
+.cat:nth-child(3){--c:var(--cat-pileta)}
+.cat:nth-child(4){--c:var(--cat-boya)}
+
+button.primary{
+  width:100%;min-height:56px;border:none;border-radius:12px;background:var(--accent);color:var(--accent-fg);
+  font-family:var(--font-display);font-size:21px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;margin-top:4px;
+}
+button.primary:disabled{opacity:.45;cursor:not-allowed}
+.row-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+button.ghost{
+  flex:1 1 150px;min-height:44px;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:10px;
+  font-family:var(--font-body);font-size:14px;cursor:pointer;padding:8px 10px;
+}
+
+h2.sec{font-family:var(--font-display);font-size:16px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-soft);margin:26px 0 0}
+ul.list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+li.item{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c,var(--line));border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+li.item .meta{min-width:0;flex:1}
+li.item .pot{font-family:var(--font-display);font-size:19px;letter-spacing:.02em;text-transform:uppercase;line-height:1.1;word-break:break-word}
+li.item .cat-name{font-size:13px;color:var(--c,var(--fg-soft));font-weight:600}
+li.item .obs{font-size:13px;color:var(--fg-soft);word-break:break-word}
+li.item time{font-family:var(--font-mono);font-size:12px;color:var(--fg-soft);font-variant-numeric:tabular-nums;flex:none}
+.del{flex:none;background:transparent;border:none;color:var(--fg-soft);font-size:20px;line-height:1;cursor:pointer;padding:2px 4px}
+.empty{color:var(--fg-soft);font-size:14px;background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:16px;margin-top:10px}
+
+.toast{
+  position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;
+  background:var(--ok);color:#fff;border-radius:12px;padding:14px 16px;font-size:15px;text-align:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.note{font-size:12.5px;color:var(--fg-soft);margin-top:14px;text-align:center}
+@media (prefers-reduced-motion:no-preference){.toast{animation:pop .18s ease-out}}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>Bajas de agua</h1>
+      <span id="autorLbl">Ypoti · Recría</span>
+    </div>
+    <div class="badge"><b id="cont">0</b><small>cargadas</small></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <form class="card" id="form" autocomplete="off">
+    <div class="field">
+      <label for="potrero">Potrero</label>
+      <input type="text" id="potrero" list="potreros" placeholder="Ej: A22" required>
+      <datalist id="potreros"></datalist>
+    </div>
+
+    <div class="field">
+      <label>Problema</label>
+      <div class="cats" id="cats">
+        <button type="button" class="cat" data-cat="CAÑO ROTO" aria-pressed="false">Caño roto<em>pérdida en la cañería</em></button>
+        <button type="button" class="cat" data-cat="BAJA PRESIÓN" aria-pressed="false">Baja presión<em>llega poca agua</em></button>
+        <button type="button" class="cat" data-cat="PILETA SECA" aria-pressed="false">Pileta seca<em>sin agua en el bebedero</em></button>
+        <button type="button" class="cat" data-cat="BOYA ROTA" aria-pressed="false">Boya rota<em>rebalsa o no corta</em></button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fecha">Fecha</label>
+      <input type="date" id="fecha" required>
+    </div>
+
+    <div class="field">
+      <label for="obs">Observación <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>
+      <textarea id="obs" placeholder="Ej: caño partido a 200 m del reservatorio"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="autor">Quién carga</label>
+      <input type="text" id="autor" placeholder="Tu nombre">
+    </div>
+
+    <button class="primary" type="submit">Guardar baja</button>
+  </form>
+
+  <h2 class="sec">Cargas de este teléfono</h2>
+  <ul class="list" id="lista"></ul>
+  <div class="empty" id="vacio">Todavía no cargaste ninguna baja. La primera que guardes aparece acá.</div>
+
+  <div class="row-btns">
+    <button class="ghost" type="button" id="btnWsp">Copiar para WhatsApp</button>
+    <button class="ghost" type="button" id="btnCsv">Copiar para la planilla</button>
+  </div>
+  <p class="note">Las cargas quedan guardadas en este teléfono, con o sin señal.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Potreros de Ypoti.
+  var POTREROS = ["A06","A07","A15A","A15B","A15C","A17","A18A","A18B","A18C","A20A","A20B","A20C",
+    "PIQUETE CABALLO","A21","A22","A23","A24","A25","A28","A30","A31","A32","A33","A35","A36","A37",
+    "A38","A39","A40","A41","A42","A43","A44","A45","A46","A47","A48","A49","A50","A51","A52","A53",
+    "A54","A55","A56","A57","C16A","C16B"];
+
+  var CLAVE = "ypoti.bajas.v1", CLAVE_AUTOR = "ypoti.autor.v1";
+  var COLORES = {"CAÑO ROTO":"--cat-cano","BAJA PRESIÓN":"--cat-presion","PILETA SECA":"--cat-pileta","BOYA ROTA":"--cat-boya"};
+
+  var $ = function(id){ return document.getElementById(id); };
+  var datos = [], catSel = "";
+
+  function leer(clave, porDefecto){
+    try { var v = localStorage.getItem(clave); return v ? JSON.parse(v) : porDefecto; }
+    catch(e){ return porDefecto; }
+  }
+  function guardar(clave, valor){
+    try { localStorage.setItem(clave, JSON.stringify(valor)); } catch(e){}
+  }
+  function hoy(){
+    var d = new Date(), m = d.getMonth()+1, dia = d.getDate();
+    return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(dia<10?"0":"")+dia;
+  }
+  function fechaCorta(iso){
+    var p = String(iso||"").split("-");
+    return p.length===3 ? p[2]+"/"+p[1] : iso;
+  }
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];
+    });
+  }
+
+  function pintar(){
+    var lista = $("lista"), html = "";
+    var orden = datos.slice().sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    for (var i=0;i<orden.length;i++){
+      var r = orden[i];
+      html += '<li class="item" style="--c:var('+(COLORES[r.categoria]||"--line")+')">'
+            +   '<div class="meta">'
+            +     '<div class="pot">'+esc(r.potrero)+'</div>'
+            +     '<div class="cat-name">'+esc(r.categoria)+'</div>'
+            +     (r.obs ? '<div class="obs">'+esc(r.obs)+'</div>' : '')
+            +   '</div>'
+            +   '<time>'+esc(fechaCorta(r.fecha))+'</time>'
+            +   '<button class="del" type="button" data-id="'+esc(r.id)+'" aria-label="Borrar esta carga">&times;</button>'
+            + '</li>';
+    }
+    lista.innerHTML = html;
+    $("vacio").hidden = datos.length > 0;
+    $("cont").textContent = datos.length;
+  }
+
+  function aviso(txt){
+    var t = document.createElement("div");
+    t.className = "toast"; t.setAttribute("role","status"); t.textContent = txt;
+    document.body.appendChild(t);
+    setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 2200);
+  }
+
+  function copiar(txt, ok){
+    var listo = function(){ aviso(ok); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(listo, function(){ seleccionar(txt); });
+    } else { seleccionar(txt); }
+  }
+  function seleccionar(txt){
+    var ta = document.createElement("textarea");
+    ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    aviso("Texto seleccionado: tocá Copiar");
+    setTimeout(function(){ if (ta.parentNode) ta.parentNode.removeChild(ta); }, 6000);
+  }
+
+  // Arranque
+  var dl = $("potreros"), opts = "";
+  for (var i=0;i<POTREROS.length;i++) opts += '<option value="'+esc(POTREROS[i])+'"></option>';
+  dl.innerHTML = opts;
+
+  datos = leer(CLAVE, []);
+  if (!Object.prototype.toString.call(datos).match(/Array/)) datos = [];
+  $("fecha").value = hoy();
+  var autor = leer(CLAVE_AUTOR, "");
+  if (autor){ $("autor").value = autor; $("autorLbl").textContent = "Ypoti · " + autor; }
+  pintar();
+
+  $("cats").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest(".cat") : null;
+    if (!b) return;
+    var cats = this.querySelectorAll(".cat");
+    for (var i=0;i<cats.length;i++) cats[i].setAttribute("aria-pressed","false");
+    b.setAttribute("aria-pressed","true");
+    catSel = b.getAttribute("data-cat");
+  });
+
+  $("form").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var pot = $("potrero").value.trim();
+    if (!pot){ $("potrero").focus(); return; }
+    if (!catSel){ aviso("Elegí el problema"); return; }
+
+    var nom = $("autor").value.trim();
+    guardar(CLAVE_AUTOR, nom);
+    $("autorLbl").textContent = nom ? "Ypoti · " + nom : "Ypoti · Recría";
+
+    datos.push({
+      id: String(Date.now()) + String(Math.floor(Math.random()*1000)),
+      ts: Date.now(),
+      fecha: $("fecha").value || hoy(),
+      potrero: pot.toUpperCase(),
+      categoria: catSel,
+      obs: $("obs").value.trim(),
+      autor: nom
+    });
+    guardar(CLAVE, datos);
+    pintar();
+
+    $("potrero").value = ""; $("obs").value = "";
+    var cats = $("cats").querySelectorAll(".cat");
+    for (var i=0;i<cats.length;i++) cats[i].setAttribute("aria-pressed","false");
+    catSel = "";
+    $("potrero").focus();
+    aviso("Guardado: " + pot.toUpperCase());
+  });
+
+  $("lista").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest(".del") : null;
+    if (!b) return;
+    var id = b.getAttribute("data-id");
+    datos = datos.filter(function(r){ return r.id !== id; });
+    guardar(CLAVE, datos);
+    pintar();
+  });
+
+  $("btnWsp").addEventListener("click", function(){
+    if (!datos.length){ aviso("No hay cargas todavía"); return; }
+    var orden = datos.slice().sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+    var t = "BAJAS DE AGUA - YPOTI\n";
+    for (var i=0;i<orden.length;i++){
+      var r = orden[i];
+      t += fechaCorta(r.fecha) + " - " + r.potrero + " - " + r.categoria
+         + (r.obs ? " (" + r.obs + ")" : "")
+         + (r.autor ? " - " + r.autor : "") + "\n";
+    }
+    copiar(t, "Copiado: pegalo en el grupo");
+  });
+
+  $("btnCsv").addEventListener("click", function(){
+    if (!datos.length){ aviso("No hay cargas todavía"); return; }
+    var orden = datos.slice().sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+    var t = "FECHA\tPOTRERO\tCATEGORIA\tOBSERVACION\tCARGADO POR\n";
+    for (var i=0;i<orden.length;i++){
+      var r = orden[i];
+      t += r.fecha+"\t"+r.potrero+"\t"+r.categoria+"\t"+(r.obs||"")+"\t"+(r.autor||"")+"\n";
+    }
+    copiar(t, "Copiado: pegalo en la planilla");
+  });
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
