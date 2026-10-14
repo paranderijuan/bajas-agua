@@ -200,6 +200,15 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   <!-- ============ CARGAR ============ -->
   <section id="pantallaCargar">
+    <div class="card" id="pedirNombre" hidden>
+      <div class="campo" style="margin:0">
+        <label for="miNombre">¿Cómo te llamás?</label>
+        <input type="text" id="miNombre" placeholder="Nombre y apellido">
+        <p class="mapa-nota" style="padding:0;margin:4px 0 0">Queda guardado en este teléfono. Es lo que va a figurar en cada carga.</p>
+      </div>
+      <button class="grande" type="button" id="btnGuardarNombre" style="margin-top:12px">Guardar</button>
+    </div>
+
     <div class="sinenviar" id="barraSinEnviar" hidden>
       <div class="txt" id="sinEnviarTxt">0 cargas esperando señal</div>
       <button type="button" class="chico" id="btnEnviarAhora">Enviar ahora</button>
@@ -825,11 +834,19 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   $("desde").value = ini[0];
   $("hasta").value = ini[1];
 
-  if (!autor){
-    autor = (window.prompt("¿Cómo te llamás? (se guarda en este teléfono)") || "").trim();
-    if (autor) guardar(K_AUTOR, autor);
+  function mostrarAutor(){
+    $("quienSoy").textContent = autor ? ("Agua y bebederos · "+autor) : "Agua y bebederos";
+    $("pedirNombre").hidden = !!autor;
+    $("form").hidden = !autor;
   }
-  $("quienSoy").textContent = autor ? ("Agua y bebederos · "+autor) : "Agua y bebederos";
+  mostrarAutor();
+
+  $("btnGuardarNombre").addEventListener("click", function(){
+    var n = $("miNombre").value.trim();
+    if (!n){ $("miNombre").focus(); return; }
+    autor = n; guardar(K_AUTOR, autor); mostrarAutor();
+    aviso("Listo, " + autor);
+  });
 
   pintarCuentas();
   contarCola().then(sincronizar, sincronizar);
