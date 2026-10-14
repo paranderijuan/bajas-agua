@@ -10,6 +10,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mantenimiento">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icono-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icono-512.png">
+<link rel="apple-touch-icon" href="icono-180.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -114,8 +118,18 @@ button.chico.apagado{opacity:.45;pointer-events:none}
 
 .foto-caja{display:flex;gap:10px;align-items:center;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
 .foto-caja .txt{flex:1;min-width:0;font-size:14px;color:var(--fg-soft)}
-.foto-caja button{flex:none}
 .miniatura{width:60px;height:60px;border-radius:8px;object-fit:cover;flex:none;border:1px solid var(--line);background:var(--surface)}
+.botones-foto{display:flex;gap:8px;margin-top:8px}
+.botones-foto button{flex:1}
+.chip{display:inline-block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--ok);color:#fff;
+  border-radius:999px;padding:2px 9px;font-weight:600}
+.torta-caja{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.torta-caja svg{flex:none}
+.torta-caja .refs{flex:1 1 150px;min-width:0;display:flex;flex-direction:column;gap:7px}
+.torta-caja .refs span{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--fg)}
+.torta-caja .refs i{width:12px;height:12px;border-radius:3px;background:var(--c);flex:none}
+.torta-caja .refs b{margin-left:auto;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+#mapaInforme{height:320px;width:100%;border-radius:10px;margin-top:12px;background:var(--surface-2)}
 
 ul.lista{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
 li.item{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c,var(--line));border-radius:12px;padding:12px 13px}
@@ -235,9 +249,13 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
         <div class="foto-caja">
           <img class="miniatura" id="miniCarga" alt="" hidden>
           <div class="txt" id="fotoTxt">Sacale una foto a la rotura</div>
-          <button type="button" class="chico" id="btnFoto">Sacar foto</button>
         </div>
-        <input type="file" id="archivoFoto" accept="image/*" hidden>
+        <div class="botones-foto">
+          <button type="button" class="chico" id="btnCamara">Cámara</button>
+          <button type="button" class="chico" id="btnGaleria">Galería</button>
+        </div>
+        <input type="file" id="archivoCamara" accept="image/*" capture="environment" hidden>
+        <input type="file" id="archivoGaleria" accept="image/*" hidden>
       </div>
 
       <div class="campo">
@@ -618,7 +636,6 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     $("ubicTxt").textContent="Sin marcar todavía"; $("btnUbic").textContent="Estoy acá";
     $("fotoTxt").textContent="Sacale una foto a la rotura";
     $("miniCarga").hidden=true; $("miniCarga").removeAttribute("src");
-    $("btnFoto").textContent="Sacar foto";
   }
 
   // ---------- pendientes ----------
@@ -659,7 +676,10 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
             +   '<div class="foto-caja">'
             +     '<img class="miniatura" id="minifix-'+esc(f.ID)+'" alt="" hidden>'
             +     '<div class="txt" id="txtfix-'+esc(f.ID)+'">Foto obligatoria del trabajo terminado</div>'
-            +     '<button class="chico" type="button" data-foto="'+esc(f.ID)+'">Sacar foto</button>'
+            +   '</div>'
+            +   '<div class="botones-foto">'
+            +     '<button class="chico" type="button" data-cam="'+esc(f.ID)+'">Cámara</button>'
+            +     '<button class="chico" type="button" data-gal="'+esc(f.ID)+'">Galería</button>'
             +   '</div>'
             +   '<input type="text" placeholder="Qué se hizo (opcional)" id="nota-'+esc(f.ID)+'">'
             +   '<button class="chico fuerte" type="button" data-conf="'+esc(f.ID)+'">Confirmar arreglado</button>'
@@ -667,7 +687,9 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       }
 
       html += '<li class="item'+(f.ESTADO==="RESUELTO"?" resuelta":"")+'" style="--c:var('+cv+')">'
-            +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span><time>'+esc(corta(f.FECHA))+'</time></div>'
+            +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
+            +     (f.ESTADO==="RESUELTO" ? '<span class="chip">Arreglado</span>' : '')
+            +     '<time>'+esc(corta(f.FECHA))+'</time></div>'
             +   '<div class="tip">'+esc(f.CATEGORIA)+'</div>'
             +   (f.OBSERVACION ? '<div class="obs">'+esc(f.OBSERVACION)+'</div>' : '')
             +   '<div class="obs">Cargado por '+esc(f.CARGADO_POR||"—")+'</div>'
@@ -714,6 +736,72 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
          + '</div>';
     }
     return h+'</div>';
+  }
+
+  // Torta: cuatro categorías, cada porción con su nombre y su número al costado.
+  function torta(items, total){
+    if (!total) return "";
+    var R = 70, C = 80, giro = -Math.PI/2, d = "", i;
+    for (i=0;i<items.length;i++){
+      var frac = items[i].valor/total;
+      var fin = giro + frac*Math.PI*2;
+      var x1 = C + R*Math.cos(giro), y1 = C + R*Math.sin(giro);
+      var x2 = C + R*Math.cos(fin),  y2 = C + R*Math.sin(fin);
+      var grande = frac > 0.5 ? 1 : 0;
+      if (frac >= 0.9999){
+        d += '<circle cx="'+C+'" cy="'+C+'" r="'+R+'" fill="var('+items[i].colorVar+')"></circle>';
+      } else {
+        d += '<path d="M '+C+' '+C+' L '+x1.toFixed(2)+' '+y1.toFixed(2)
+           + ' A '+R+' '+R+' 0 '+grande+' 1 '+x2.toFixed(2)+' '+y2.toFixed(2)+' Z" '
+           + 'fill="var('+items[i].colorVar+')" stroke="var(--surface)" stroke-width="2"></path>';
+      }
+      giro = fin;
+    }
+    var refs = "";
+    for (i=0;i<items.length;i++){
+      var pct = Math.round(items[i].valor/total*100);
+      refs += '<span style="--c:var('+items[i].colorVar+')"><i></i>'+esc(items[i].etiqueta)
+           +  '<b>'+items[i].valor+' · '+pct+'%</b></span>';
+    }
+    return '<div class="torta-caja">'
+         +   '<svg width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Reparto por tipo de problema">'+d+'</svg>'
+         +   '<div class="refs">'+refs+'</div>'
+         + '</div>';
+  }
+
+  // Mapa del informe: cada baja del período marcada con el color de su problema.
+  var mapaInf = null, capaMarcas = null;
+  function pintarMapaInforme(filas){
+    var cont = document.getElementById("mapaInforme");
+    if (!cont) return;
+    var conPunto = filas.filter(function(f){ return f.LAT && f.LON; });
+    if (!window.L || !conPunto.length){
+      cont.style.display = "none";
+      return;
+    }
+    cont.style.display = "";
+    if (!mapaInf){
+      mapaInf = L.map("mapaInforme", { scrollWheelZoom:false }).setView(CENTRO, 12);
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom:19, attribution:"Esri" }).addTo(mapaInf);
+      capaMarcas = L.layerGroup().addTo(mapaInf);
+    }
+    capaMarcas.clearLayers();
+    var estilo = getComputedStyle(document.documentElement);
+    var puntos = [];
+    conPunto.forEach(function(f){
+      var color = estilo.getPropertyValue(VAR_COLOR[f.CATEGORIA] || "--s1").trim() || "#2a78d6";
+      var la = Number(f.LAT), lo = Number(f.LON);
+      if (isNaN(la) || isNaN(lo)) return;
+      puntos.push([la, lo]);
+      L.circleMarker([la, lo], {
+        radius: 8, color: "#ffffff", weight: 2, opacity: 1,
+        fillColor: color, fillOpacity: f.ESTADO === "RESUELTO" ? 0.45 : 0.95
+      }).bindPopup(esc(f.POTRERO) + "<br>" + esc(f.CATEGORIA) + "<br>" + esc(corta(f.FECHA))
+        + (f.ESTADO === "RESUELTO" ? "<br>Arreglado" : "<br>Pendiente")).addTo(capaMarcas);
+    });
+    if (puntos.length) mapaInf.fitBounds(puntos, { padding:[30,30], maxZoom:15 });
+    setTimeout(function(){ mapaInf.invalidateSize(); }, 200);
   }
 
   function pintarInforme(){
@@ -784,9 +872,19 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       +   '<div class="tile"><b>'+pend.length+'</b><span>Sin arreglar</span></div>'
       +   '<div class="tile"><b>'+(prom===null?"—":prom.toFixed(1))+'</b><span>Días promedio de arreglo</span></div>'
       + '</div>'
-      + '<div class="card"><h2 class="sec" style="margin:0">Por tipo de problema</h2>'+barras(porTipo,null)+leyenda+'</div>'
+      + '<div class="card"><h2 class="sec" style="margin:0">Mapa del período</h2>'
+      +   '<div id="mapaInforme"></div>'
+      +   '<p class="mapa-nota" style="padding:8px 0 0;margin:0">Cada punto es una baja. El color es el tipo de problema; los arreglados se ven más apagados.</p>'
+      +   leyenda
+      + '</div>'
+      + '<div class="card"><h2 class="sec" style="margin:0">Reparto por tipo de problema</h2>'
+      +   (porTipo.length ? torta(porTipo, filas.length) : '<div class="vacio">Sin datos en este período.</div>')
+      + '</div>'
+      + '<div class="card"><h2 class="sec" style="margin:0">Cantidad por tipo</h2>'+barras(porTipo,null)+'</div>'
       + '<div class="card"><h2 class="sec" style="margin:0">Potreros que más dieron problema</h2>'+barras(porPotrero,"--s1")+'</div>'
       + hSem + hViejas;
+
+    pintarMapaInforme(filas);
   }
 
   function textoInforme(){
@@ -896,9 +994,14 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   $("btnEnviarAhora").addEventListener("click", function(){ sincronizar(); });
 
-  $("btnFoto").addEventListener("click", function(){ destinoFoto="carga"; $("archivoFoto").click(); });
+  function pedirFoto(destino, conCamara){
+    destinoFoto = destino;
+    $(conCamara ? "archivoCamara" : "archivoGaleria").click();
+  }
+  $("btnCamara").addEventListener("click", function(){ pedirFoto("carga", true); });
+  $("btnGaleria").addEventListener("click", function(){ pedirFoto("carga", false); });
 
-  $("archivoFoto").addEventListener("change", function(){
+  function recibirFoto(){
     var archivo = this.files && this.files[0];
     this.value = "";
     if (!archivo) return;
@@ -909,7 +1012,6 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
         fotoCarga = b64;
         $("miniCarga").src = b64; $("miniCarga").hidden = false;
         $("fotoTxt").textContent = "Foto lista";
-        $("btnFoto").textContent = "Cambiar";
       } else {
         fotosArreglo[destino] = b64;
         var mini = $("minifix-"+destino), txt = $("txtfix-"+destino);
@@ -918,7 +1020,9 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       }
       aviso("Foto lista");
     }).catch(function(){ aviso("No se pudo usar esa foto", true); });
-  });
+  }
+  $("archivoCamara").addEventListener("change", recibirFoto);
+  $("archivoGaleria").addEventListener("change", recibirFoto);
 
   $("form").addEventListener("submit", function(ev){
     ev.preventDefault();
@@ -963,8 +1067,10 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       if (p) p.hidden = !p.hidden;
       return;
     }
-    var pedirFoto = ev.target.closest ? ev.target.closest("button[data-foto]") : null;
-    if (pedirFoto){ destinoFoto = pedirFoto.getAttribute("data-foto"); $("archivoFoto").click(); return; }
+    var cam = ev.target.closest ? ev.target.closest("button[data-cam]") : null;
+    if (cam){ pedirFoto(cam.getAttribute("data-cam"), true); return; }
+    var gal = ev.target.closest ? ev.target.closest("button[data-gal]") : null;
+    if (gal){ pedirFoto(gal.getAttribute("data-gal"), false); return; }
 
     var conf = ev.target.closest ? ev.target.closest("button[data-conf]") : null;
     if (conf){
