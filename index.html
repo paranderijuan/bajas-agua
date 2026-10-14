@@ -25,7 +25,8 @@
   --bg:#f3f1ec; --surface:#fcfcfb; --surface-2:#e9e6df; --fg:#1d2420; --fg-soft:#5e6660;
   --line:#d4cfc5; --accent:#0f6f8c; --accent-fg:#ffffff;
   --ok:#2f7d4f; --alerta:#b26a00; --malo:#b03028;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  /* un color por tipo de problema: caño roto rojo, baja presión amarillo, pileta seca naranja, boya rota azul */
+  --s1:#c62f22; --s2:#d9ad00; --s3:#a8500a; --s4:#2a78d6;
   --font-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --font-body:"Barlow","Helvetica Neue",system-ui,sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -36,7 +37,7 @@
     --bg:#13181a; --surface:#1c2325; --surface-2:#262e31; --fg:#e8ebe8; --fg-soft:#9aa5a2;
     --line:#333d40; --accent:#3fa8c7; --accent-fg:#06252e;
     --ok:#5fbe84; --alerta:#e0a24a; --malo:#e2756c;
-    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --s1:#e2645a; --s2:#dcb23a; --s3:#b2651f; --s4:#3987e5;
     color-scheme:dark;
   }
 }
@@ -44,7 +45,7 @@
   --bg:#13181a; --surface:#1c2325; --surface-2:#262e31; --fg:#e8ebe8; --fg-soft:#9aa5a2;
   --line:#333d40; --accent:#3fa8c7; --accent-fg:#06252e;
   --ok:#5fbe84; --alerta:#e0a24a; --malo:#e2756c;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s1:#e2645a; --s2:#dcb23a; --s3:#b2651f; --s4:#3987e5;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -132,7 +133,25 @@ button.chico.apagado{opacity:.45;pointer-events:none}
 #mapaInforme{height:320px;width:100%;border-radius:10px;margin-top:12px;background:var(--surface-2)}
 
 ul.lista{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
-li.item{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c,var(--line));border-radius:12px;padding:12px 13px}
+li.fila-desliz{position:relative;overflow:hidden;border-radius:12px;background:var(--malo)}
+li.fila-desliz .zona-borrar{position:absolute;top:0;right:0;bottom:0;width:104px;border:none;background:var(--malo);
+  color:#fff;font-family:var(--font-display);font-size:17px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer}
+li.fila-desliz .confirmar{position:absolute;inset:0;background:var(--malo);color:#fff;display:flex;align-items:center;
+  gap:10px;padding:12px 13px;font-size:14.5px}
+li.fila-desliz .confirmar span{flex:1;min-width:0}
+li.fila-desliz .confirmar button{min-height:38px;border-radius:9px;border:1px solid rgba(255,255,255,.65);
+  background:transparent;color:#fff;font-size:14px;padding:6px 14px;cursor:pointer;flex:none}
+li.fila-desliz .confirmar button.si{background:#fff;color:var(--malo);border-color:#fff;font-weight:600}
+li.item{position:relative;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c,var(--line));
+  border-radius:12px;padding:12px 13px;touch-action:pan-y;will-change:transform}
+li.item.suave{transition:transform .18s ease}
+.pista-desliz{font-size:12px;color:var(--fg-soft);margin-top:10px;text-align:center}
+.marca-mapa{border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.marca-mapa.circulo{border-radius:50%}
+.marca-mapa.cuadrado{border-radius:3px}
+.marca-mapa.rombo{border-radius:3px;transform:rotate(45deg)}
+.marca-mapa.triangulo{border:none;background:transparent!important;width:0!important;height:0!important;
+  border-left:9px solid transparent;border-right:9px solid transparent;filter:drop-shadow(0 0 1px #fff)}
 li.item .fila1{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
 li.item .pot{font-family:var(--font-display);font-size:21px;text-transform:uppercase;line-height:1.05;word-break:break-word;min-width:0}
 li.item time{margin-left:auto;flex:none;font-family:var(--font-mono);font-size:12px;color:var(--fg-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -301,7 +320,12 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       <button type="button" data-ver="PENDIENTE" aria-pressed="true">Pendientes</button>
       <button type="button" data-ver="RESUELTO" aria-pressed="false">Arregladas</button>
     </div>
+    <div class="periodos" id="ordenLista">
+      <button type="button" data-orden="viejo" aria-pressed="true">Más viejas arriba</button>
+      <button type="button" data-orden="nuevo" aria-pressed="false">Más nuevas arriba</button>
+    </div>
     <ul class="lista" id="listaTrabajos"></ul>
+    <p class="pista-desliz" id="pistaDesliz" hidden>Para borrar una carga equivocada, arrastrala hacia la izquierda.</p>
     <div class="vacio" id="vacioTrabajos" hidden>No hay nada acá por ahora.</div>
     <div class="acciones"><button class="chico" type="button" id="btnActualizar">Actualizar lista</button></div>
   </section>
@@ -357,12 +381,14 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   var TIPOS = ["CAÑO ROTO","BAJA PRESIÓN","PILETA SECA","BOYA ROTA"];
   var VAR_COLOR = {"CAÑO ROTO":"--s1","BAJA PRESIÓN":"--s2","PILETA SECA":"--s3","BOYA ROTA":"--s4"};
+  // además del color, cada tipo tiene su forma en el mapa
+  var FORMA = {"CAÑO ROTO":"circulo","BAJA PRESIÓN":"cuadrado","PILETA SECA":"rombo","BOYA ROTA":"triangulo"};
   var K_AUTOR = "ypoti.autor", K_COLA = "ypoti.cola", K_CACHE = "ypoti.cache";
   var CENTRO = [-23.314378, -56.699159];
 
   var datos = [], autor = "", ubic = null, tipoSel = "";
   var fotoCarga = "", fotosArreglo = {}, destinoFoto = "carga";
-  var verEstado = "PENDIENTE", enLinea = true, sinEnviar = 0;
+  var verEstado = "PENDIENTE", orden = "viejo", enLinea = true, sinEnviar = 0;
   var mapa = null, marcador = null, capaSat = null, capaCalle = null, puntoTmp = null, viendoSat = true;
 
   function $(id){ return document.getElementById(id); }
@@ -639,8 +665,11 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   }
 
   // ---------- pendientes ----------
+  // Las borradas quedan marcadas en la planilla, pero no se muestran en ningún lado.
+  function vivas(){ return datos.filter(function(f){ return f.ESTADO !== "BORRADO"; }); }
+
   function pintarCuentas(){
-    var n = datos.filter(function(f){ return f.ESTADO!=="RESUELTO"; }).length;
+    var n = vivas().filter(function(f){ return f.ESTADO!=="RESUELTO"; }).length;
     var b = $("cuentaPend"); b.textContent=n; b.hidden=(n===0);
   }
 
@@ -652,9 +681,13 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   }
 
   function pintarTrabajos(){
-    var filas = datos.filter(function(f){
+    var filas = vivas().filter(function(f){
       return verEstado==="RESUELTO" ? f.ESTADO==="RESUELTO" : f.ESTADO!=="RESUELTO";
-    }).sort(function(a,b){ return String(b.FECHA).localeCompare(String(a.FECHA)); });
+    }).sort(function(a,b){
+      var c = String(a.FECHA).localeCompare(String(b.FECHA));
+      if (c === 0) c = String(a.ID).localeCompare(String(b.ID));
+      return orden === "viejo" ? c : -c;
+    });
 
     var html = "";
     for (var i=0;i<filas.length;i++){
@@ -686,7 +719,14 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
             + '</div>';
       }
 
-      html += '<li class="item'+(f.ESTADO==="RESUELTO"?" resuelta":"")+'" style="--c:var('+cv+')">'
+      html += '<li class="fila-desliz">'
+            + '<button class="zona-borrar" type="button" data-pedir-borrar="'+esc(f.ID)+'">Borrar</button>'
+            + '<div class="confirmar" id="conf-'+esc(f.ID)+'" hidden>'
+            +   '<span>¿Borrar esta carga? No se puede deshacer.</span>'
+            +   '<button type="button" class="si" data-borrar="'+esc(f.ID)+'">Sí, borrar</button>'
+            +   '<button type="button" data-cancelar="'+esc(f.ID)+'">No</button>'
+            + '</div>'
+            + '<div class="item'+(f.ESTADO==="RESUELTO"?" resuelta":"")+'" data-id="'+esc(f.ID)+'" style="--c:var('+cv+')">'
             +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
             +     (f.ESTADO==="RESUELTO" ? '<span class="chip">Arreglado</span>' : '')
             +     '<time>'+esc(corta(f.FECHA))+'</time></div>'
@@ -694,9 +734,10 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
             +   (f.OBSERVACION ? '<div class="obs">'+esc(f.OBSERVACION)+'</div>' : '')
             +   '<div class="obs">Cargado por '+esc(f.CARGADO_POR||"—")+'</div>'
             +   pie
-            + '</li>';
+            + '</div></li>';
     }
     $("listaTrabajos").innerHTML = html;
+    $("pistaDesliz").hidden = filas.length === 0;
     $("vacioTrabajos").hidden = filas.length>0;
     $("vacioTrabajos").textContent = verEstado==="RESUELTO"
       ? "Todavía no hay trabajos marcados como arreglados."
@@ -721,7 +762,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   }
   function delPeriodo(){
     var r = rango();
-    return datos.filter(function(f){ var x=String(f.FECHA||""); return x>=r.desde && x<=r.hasta; });
+    return vivas().filter(function(f){ var x=String(f.FECHA||""); return x>=r.desde && x<=r.hasta; });
   }
   function barras(items, colorFijo){
     if (!items.length) return '<div class="vacio">Sin datos en este período.</div>';
@@ -790,15 +831,24 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     var estilo = getComputedStyle(document.documentElement);
     var puntos = [];
     conPunto.forEach(function(f){
-      var color = estilo.getPropertyValue(VAR_COLOR[f.CATEGORIA] || "--s1").trim() || "#2a78d6";
+      var color = estilo.getPropertyValue(VAR_COLOR[f.CATEGORIA] || "--s1").trim() || "#c62f22";
       var la = Number(f.LAT), lo = Number(f.LON);
       if (isNaN(la) || isNaN(lo)) return;
       puntos.push([la, lo]);
-      L.circleMarker([la, lo], {
-        radius: 8, color: "#ffffff", weight: 2, opacity: 1,
-        fillColor: color, fillOpacity: f.ESTADO === "RESUELTO" ? 0.45 : 0.95
-      }).bindPopup(esc(f.POTRERO) + "<br>" + esc(f.CATEGORIA) + "<br>" + esc(corta(f.FECHA))
-        + (f.ESTADO === "RESUELTO" ? "<br>Arreglado" : "<br>Pendiente")).addTo(capaMarcas);
+      var forma = FORMA[f.CATEGORIA] || "circulo";
+      var apagado = f.ESTADO === "RESUELTO";
+      var estiloMarca = forma === "triangulo"
+        ? 'border-bottom:16px solid ' + color + ';'
+        : 'width:16px;height:16px;background:' + color + ';';
+      var icono = L.divIcon({
+        className: "",
+        html: '<div class="marca-mapa ' + forma + '" style="' + estiloMarca
+            + (apagado ? 'opacity:.5;' : '') + '"></div>',
+        iconSize: [20, 20], iconAnchor: [10, 10]
+      });
+      L.marker([la, lo], { icon: icono })
+        .bindPopup(esc(f.POTRERO) + "<br>" + esc(f.CATEGORIA) + "<br>" + esc(corta(f.FECHA))
+          + (apagado ? "<br>Arreglado" : "<br>Pendiente")).addTo(capaMarcas);
     });
     if (puntos.length) mapaInf.fitBounds(puntos, { padding:[30,30], maxZoom:15 });
     setTimeout(function(){ mapaInf.invalidateSize(); }, 200);
@@ -860,8 +910,12 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       hViejas += '</ul></div>';
     }
 
+    var FIG = {"circulo":"●","cuadrado":"■","rombo":"◆","triangulo":"▲"};
     var leyenda='<div class="leyenda">';
-    TIPOS.forEach(function(t){ leyenda += '<span style="--c:var('+VAR_COLOR[t]+')"><i></i>'+esc(t)+'</span>'; });
+    TIPOS.forEach(function(t){
+      leyenda += '<span style="--c:var('+VAR_COLOR[t]+')"><i></i>'
+              +  esc(t) + ' ' + (FIG[FORMA[t]] || '') + '</span>';
+    });
     leyenda += '</div>';
 
     $("informe").innerHTML =
@@ -1061,6 +1115,20 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   });
 
   $("listaTrabajos").addEventListener("click", function(ev){
+    var pedir = ev.target.closest ? ev.target.closest("button[data-pedir-borrar]") : null;
+    if (pedir){ var c = $("conf-"+pedir.getAttribute("data-pedir-borrar")); if (c) c.hidden = false; return; }
+
+    var cancel = ev.target.closest ? ev.target.closest("button[data-cancelar]") : null;
+    if (cancel){
+      var id0 = cancel.getAttribute("data-cancelar");
+      var c0 = $("conf-"+id0); if (c0) c0.hidden = true;
+      cerrarTodas(null);
+      return;
+    }
+
+    var del = ev.target.closest ? ev.target.closest("button[data-borrar]") : null;
+    if (del){ borrarCarga(del.getAttribute("data-borrar")); return; }
+
     var abrir = ev.target.closest ? ev.target.closest("button[data-fix]") : null;
     if (abrir){
       var p = $("fix-"+abrir.getAttribute("data-fix"));
@@ -1095,6 +1163,71 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   });
 
   $("btnActualizar").addEventListener("click", function(){ sincronizar(); });
+
+  $("ordenLista").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest("button[data-orden]") : null;
+    if (!b) return;
+    orden = b.getAttribute("data-orden");
+    var bs = this.querySelectorAll("button");
+    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", String(bs[i]===b));
+    pintarTrabajos();
+  });
+
+  // ---------- arrastrar para borrar ----------
+  var arr = null;
+  function tarjeta(el){ return el && el.closest ? el.closest(".item") : null; }
+  function cerrarTodas(menos){
+    var items = $("listaTrabajos").querySelectorAll(".item");
+    for (var i=0;i<items.length;i++){
+      if (items[i] === menos) continue;
+      items[i].classList.add("suave");
+      items[i].style.transform = "";
+    }
+  }
+
+  $("listaTrabajos").addEventListener("pointerdown", function(ev){
+    if (ev.target.closest && ev.target.closest("button, a, input, textarea")) return;
+    var t = tarjeta(ev.target);
+    if (!t) return;
+    arr = { el:t, x0:ev.clientX, y0:ev.clientY, dx:0, activo:false };
+    t.classList.remove("suave");
+  });
+
+  $("listaTrabajos").addEventListener("pointermove", function(ev){
+    if (!arr) return;
+    var dx = ev.clientX - arr.x0, dy = ev.clientY - arr.y0;
+    if (!arr.activo){
+      if (Math.abs(dy) > Math.abs(dx)) { arr = null; return; }   // está scrolleando
+      if (Math.abs(dx) < 12) return;
+      arr.activo = true;
+      cerrarTodas(arr.el);
+    }
+    arr.dx = Math.max(-104, Math.min(0, dx));
+    arr.el.style.transform = "translateX(" + arr.dx + "px)";
+  });
+
+  function soltar(){
+    if (!arr) return;
+    var el = arr.el, abierto = arr.dx < -52;
+    el.classList.add("suave");
+    el.style.transform = abierto ? "translateX(-104px)" : "";
+    arr = null;
+  }
+  $("listaTrabajos").addEventListener("pointerup", soltar);
+  $("listaTrabajos").addEventListener("pointercancel", soltar);
+  $("listaTrabajos").addEventListener("pointerleave", soltar);
+
+  function borrarCarga(id){
+    for (var i=0;i<datos.length;i++){
+      if (String(datos[i].ID) === String(id)) datos[i].ESTADO = "BORRADO";
+    }
+    guardar(K_CACHE, datos);
+    pintarTrabajos(); pintarCuentas();
+    aviso("Carga borrada");
+    var payload = { accion:"borrar", id:id };
+    mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
+      .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
+  }
 
   $("periodos").addEventListener("click", function(ev){
     var b = ev.target.closest ? ev.target.closest("button[data-per]") : null;
