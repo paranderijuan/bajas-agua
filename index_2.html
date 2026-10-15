@@ -133,15 +133,14 @@ button.chico.apagado{opacity:.45;pointer-events:none}
 #mapaInforme{height:320px;width:100%;border-radius:10px;margin-top:12px;background:var(--surface-2)}
 
 ul.lista{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
-li.fila-desliz{position:relative;overflow:hidden;border-radius:12px;background:var(--malo)}
-li.fila-desliz .zona-borrar{position:absolute;top:0;right:0;bottom:0;width:104px;border:none;background:var(--malo);
-  color:#fff;font-family:var(--font-display);font-size:17px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer}
-li.fila-desliz .confirmar{position:absolute;inset:0;background:var(--malo);color:#fff;display:flex;align-items:center;
-  gap:10px;padding:12px 13px;font-size:14.5px}
-li.fila-desliz .confirmar span{flex:1;min-width:0}
-li.fila-desliz .confirmar button{min-height:38px;border-radius:9px;border:1px solid rgba(255,255,255,.65);
-  background:transparent;color:#fff;font-size:14px;padding:6px 14px;cursor:pointer;flex:none}
-li.fila-desliz .confirmar button.si{background:#fff;color:var(--malo);border-color:#fff;font-weight:600}
+li.fila-desliz{position:relative;overflow:hidden;border-radius:12px;background:transparent}
+li.fila-desliz .zona-borrar{position:absolute;top:0;right:0;bottom:0;width:96px;border:none;
+  background:var(--malo);color:#fff;border-radius:0 12px 12px 0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font-family:var(--font-display);font-size:15px;letter-spacing:.08em;text-transform:uppercase;
+  opacity:0;transition:opacity .12s ease}
+li.fila-desliz.abierta .zona-borrar{opacity:1}
+li.fila-desliz .zona-borrar svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
 li.item{position:relative;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c,var(--line));
   border-radius:12px;padding:12px 13px;touch-action:pan-y;will-change:transform}
 li.item.suave{transition:transform .18s ease}
@@ -320,10 +319,6 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       <button type="button" data-ver="PENDIENTE" aria-pressed="true">Pendientes</button>
       <button type="button" data-ver="RESUELTO" aria-pressed="false">Arregladas</button>
     </div>
-    <div class="periodos" id="ordenLista">
-      <button type="button" data-orden="viejo" aria-pressed="true">Más viejas arriba</button>
-      <button type="button" data-orden="nuevo" aria-pressed="false">Más nuevas arriba</button>
-    </div>
     <ul class="lista" id="listaTrabajos"></ul>
     <p class="pista-desliz" id="pistaDesliz" hidden>Para borrar una carga equivocada, arrastrala hacia la izquierda.</p>
     <div class="vacio" id="vacioTrabajos" hidden>No hay nada acá por ahora.</div>
@@ -388,7 +383,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   var datos = [], autor = "", ubic = null, tipoSel = "";
   var fotoCarga = "", fotosArreglo = {}, destinoFoto = "carga";
-  var verEstado = "PENDIENTE", orden = "viejo", enLinea = true, sinEnviar = 0;
+  var verEstado = "PENDIENTE", enLinea = true, sinEnviar = 0;
   var mapa = null, marcador = null, capaSat = null, capaCalle = null, puntoTmp = null, viendoSat = true;
 
   function $(id){ return document.getElementById(id); }
@@ -684,9 +679,10 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     var filas = vivas().filter(function(f){
       return verEstado==="RESUELTO" ? f.ESTADO==="RESUELTO" : f.ESTADO!=="RESUELTO";
     }).sort(function(a,b){
+      // pendientes: lo que espera hace más días, arriba. arregladas: lo último, arriba.
       var c = String(a.FECHA).localeCompare(String(b.FECHA));
       if (c === 0) c = String(a.ID).localeCompare(String(b.ID));
-      return orden === "viejo" ? c : -c;
+      return verEstado === "RESUELTO" ? -c : c;
     });
 
     var html = "";
@@ -720,12 +716,10 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       }
 
       html += '<li class="fila-desliz">'
-            + '<button class="zona-borrar" type="button" data-pedir-borrar="'+esc(f.ID)+'">Borrar</button>'
-            + '<div class="confirmar" id="conf-'+esc(f.ID)+'" hidden>'
-            +   '<span>¿Borrar esta carga? No se puede deshacer.</span>'
-            +   '<button type="button" class="si" data-borrar="'+esc(f.ID)+'">Sí, borrar</button>'
-            +   '<button type="button" data-cancelar="'+esc(f.ID)+'">No</button>'
-            + '</div>'
+            + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta carga">'
+            +   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
+            +   'Borrar'
+            + '</button>'
             + '<div class="item'+(f.ESTADO==="RESUELTO"?" resuelta":"")+'" data-id="'+esc(f.ID)+'" style="--c:var('+cv+')">'
             +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
             +     (f.ESTADO==="RESUELTO" ? '<span class="chip">Arreglado</span>' : '')
@@ -1115,17 +1109,6 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   });
 
   $("listaTrabajos").addEventListener("click", function(ev){
-    var pedir = ev.target.closest ? ev.target.closest("button[data-pedir-borrar]") : null;
-    if (pedir){ var c = $("conf-"+pedir.getAttribute("data-pedir-borrar")); if (c) c.hidden = false; return; }
-
-    var cancel = ev.target.closest ? ev.target.closest("button[data-cancelar]") : null;
-    if (cancel){
-      var id0 = cancel.getAttribute("data-cancelar");
-      var c0 = $("conf-"+id0); if (c0) c0.hidden = true;
-      cerrarTodas(null);
-      return;
-    }
-
     var del = ev.target.closest ? ev.target.closest("button[data-borrar]") : null;
     if (del){ borrarCarga(del.getAttribute("data-borrar")); return; }
 
@@ -1164,15 +1147,6 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   $("btnActualizar").addEventListener("click", function(){ sincronizar(); });
 
-  $("ordenLista").addEventListener("click", function(ev){
-    var b = ev.target.closest ? ev.target.closest("button[data-orden]") : null;
-    if (!b) return;
-    orden = b.getAttribute("data-orden");
-    var bs = this.querySelectorAll("button");
-    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", String(bs[i]===b));
-    pintarTrabajos();
-  });
-
   // ---------- arrastrar para borrar ----------
   var arr = null;
   function tarjeta(el){ return el && el.closest ? el.closest(".item") : null; }
@@ -1182,6 +1156,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       if (items[i] === menos) continue;
       items[i].classList.add("suave");
       items[i].style.transform = "";
+      if (items[i].parentNode) items[i].parentNode.classList.remove("abierta");
     }
   }
 
@@ -1202,15 +1177,17 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       arr.activo = true;
       cerrarTodas(arr.el);
     }
-    arr.dx = Math.max(-104, Math.min(0, dx));
+    arr.dx = Math.max(-96, Math.min(0, dx));
     arr.el.style.transform = "translateX(" + arr.dx + "px)";
+    if (arr.el.parentNode) arr.el.parentNode.classList.toggle("abierta", arr.dx < -8);
   });
 
   function soltar(){
     if (!arr) return;
-    var el = arr.el, abierto = arr.dx < -52;
+    var el = arr.el, abierto = arr.dx < -48;
     el.classList.add("suave");
-    el.style.transform = abierto ? "translateX(-104px)" : "";
+    el.style.transform = abierto ? "translateX(-96px)" : "";
+    if (el.parentNode) el.parentNode.classList.toggle("abierta", abierto);
     arr = null;
   }
   $("listaTrabajos").addEventListener("pointerup", soltar);
