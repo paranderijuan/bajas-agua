@@ -195,20 +195,50 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surf
   padding-bottom:env(safe-area-inset-bottom,0px);
   padding-left:max(0px,env(safe-area-inset-left,0px));
   padding-right:max(0px,env(safe-area-inset-right,0px));}
-nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
-nav.tabs button{background:none;border:none;cursor:pointer;padding:11px 4px 13px;color:var(--fg-soft);
-  font-family:var(--font-display);font-size:15px;letter-spacing:.07em;text-transform:uppercase;
-  display:flex;align-items:center;justify-content:center;gap:6px;border-top:3px solid transparent;margin-top:-1px}
+nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs button{background:none;border:none;cursor:pointer;padding:11px 2px 13px;color:var(--fg-soft);
+  font-family:var(--font-display);font-size:13px;letter-spacing:.01em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;border-top:3px solid transparent;margin-top:-1px;
+  white-space:nowrap;position:relative}
 nav.tabs button[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
-nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--malo);color:#fff;border-radius:999px;padding:0 6px;line-height:16px;min-width:16px}
+/* el número va flotando arriba, así no le roba ancho al texto en pantallas angostas */
+nav.tabs .cuenta{position:absolute;top:2px;right:5px;
+  font-family:var(--font-mono);font-size:10px;background:var(--malo);color:#fff;border-radius:999px;
+  padding:0 5px;line-height:15px;min-width:15px;text-align:center}
 
 .aviso{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
   bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ok);color:#fff;border-radius:12px;
   padding:13px 16px;font-size:15px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .aviso.error{background:var(--malo)}
 
+/* vista "por potrero": una franja por pileta, se toca y se abre con la foto */
+.item .dias{margin-left:auto;flex:none;font-family:var(--font-mono);font-size:13px;font-variant-numeric:tabular-nums;
+  color:var(--fg);white-space:nowrap}
+.item .dias b{font-size:19px}
+.franja{cursor:pointer}
+.franja .flecha{flex:none;width:16px;height:16px;margin-left:8px;transition:transform .15s ease}
+.franja .flecha svg{width:16px;height:16px;fill:none;stroke:var(--fg-soft);stroke-width:2.5;stroke-linecap:round}
+.franja.abierta .flecha{transform:rotate(180deg)}
+.detalle{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+.detalle .foto-grande{width:100%;max-height:260px;object-fit:cover;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface-2);display:block}
+.detalle .pie{font-size:13.5px;color:var(--fg-soft);margin-top:7px}
+.detalle h3{font-family:var(--font-display);font-size:14px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--fg-soft);margin:16px 0 0;font-weight:600}
+.trab{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.trab:last-child{border-bottom:none}
+.trab img{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none;border:1px solid var(--line);
+  background:var(--surface-2)}
+.trab .sinfoto{width:56px;height:56px;border-radius:8px;flex:none;border:1px dashed var(--line)}
+.trab .txt{flex:1;min-width:0;font-size:13.5px}
+.trab .txt b{display:block;font-size:14px;color:var(--c2,var(--fg))}
+.trab .txt span{color:var(--fg-soft)}
+.trab button{flex:none;min-height:36px;padding:4px 10px;font-size:12.5px;background:transparent;color:var(--fg-soft);
+  border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.trab button.peligro{background:var(--malo);border-color:var(--malo);color:#fff}
+
 @media print{
-  nav.tabs,.periodos,.acciones,#cajaRango,#pantallaCargar,#pantallaPendientes,.estado{display:none!important}
+  nav.tabs,.periodos,.acciones,#cajaRango,#pantallaCargar,#pantallaPendientes,#pantallaLimpieza,.estado{display:none!important}
   header.top{position:static;border:none}
   #tituloInforme{display:block!important}
   body{background:#fff;color:#000;padding:0}
@@ -272,8 +302,6 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
           <button type="button" class="chico" id="btnCamara">Cámara</button>
           <button type="button" class="chico" id="btnGaleria">Galería</button>
         </div>
-        <input type="file" id="archivoCamara" accept="image/*" capture="environment" hidden>
-        <input type="file" id="archivoGaleria" accept="image/*" hidden>
       </div>
 
       <div class="campo">
@@ -325,6 +353,80 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     <div class="acciones"><button class="chico" type="button" id="btnActualizar">Actualizar lista</button></div>
   </section>
 
+  <!-- ============ LIMPIEZA ============ -->
+  <section id="pantallaLimpieza" hidden>
+    <div class="periodos" id="filtroLimpieza" style="margin-top:14px">
+      <button type="button" data-verl="FALTA" aria-pressed="true">Falta hacer</button>
+      <button type="button" data-verl="CARGAR" aria-pressed="false">Cargar</button>
+      <button type="button" data-verl="POTRERO" aria-pressed="false">Por potrero</button>
+    </div>
+
+    <!-- ---- lo que falta hacer ---- -->
+    <div id="limpFalta">
+      <div class="card" id="cajaHoy"></div>
+
+      <div class="card">
+        <div class="campo" style="margin:0">
+          <label for="potreroM">Marcar una pileta para limpiar</label>
+          <input type="text" id="potreroM" list="potreros" placeholder="Ej: A22">
+        </div>
+        <button class="chico fuerte" type="button" id="btnMarcar" style="margin-top:10px;width:100%">Agregar a la lista</button>
+      </div>
+
+      <h2 class="sec">Piletas que faltan limpiar</h2>
+      <ul class="lista" id="listaFalta"></ul>
+      <p class="pista-desliz" id="pistaDeslizF" hidden>Para borrar una marca equivocada, arrastrala hacia la izquierda.</p>
+      <div class="vacio" id="vacioFalta" hidden>No hay ninguna pileta marcada para limpiar.</div>
+    </div>
+
+    <!-- ---- cargar un trabajo hecho ---- -->
+    <div id="limpCargar" hidden>
+      <form class="card" id="formLimpieza" autocomplete="off">
+        <div class="campo">
+          <label>¿Qué trabajo hiciste?</label>
+          <div class="tipos" id="tiposLimp">
+            <button type="button" class="tipo" data-tl="LIMPIEZA" style="--c:var(--ok)" aria-pressed="true">Limpieza<em>se lavó la pileta</em></button>
+            <button type="button" class="tipo" data-tl="PLANTAS" style="--c:var(--s2)" aria-pressed="false">Plantas<em>se cambiaron las plantas</em></button>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="potreroL">Potrero</label>
+          <input type="text" id="potreroL" list="potreros" placeholder="Ej: A22" required>
+        </div>
+
+        <div class="campo">
+          <label id="rotuloFotoL">Foto del bebedero limpio</label>
+          <div class="foto-caja">
+            <img class="miniatura" id="miniLimp" alt="" hidden>
+            <div class="txt" id="fotoTxtL">Obligatoria: sacale la foto con el bebedero ya limpio</div>
+          </div>
+          <div class="botones-foto">
+            <button type="button" class="chico" id="btnCamaraL">Cámara</button>
+            <button type="button" class="chico" id="btnGaleriaL">Galería</button>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="fechaL">Fecha</label>
+          <input type="date" id="fechaL" required>
+        </div>
+
+        <div class="campo">
+          <label for="obsL">Observación (si hace falta)</label>
+          <textarea id="obsL" placeholder="Ej: estaba con mucho barro, se vació entera"></textarea>
+        </div>
+
+        <button class="grande" type="submit">Guardar</button>
+      </form>
+      <p class="mapa-nota" style="padding:12px 2px 0;margin:0">
+        Lo que cargaste hoy lo ves en <b>Falta hacer</b>. El historial de cada pileta, con las
+        fotos, está en <b>Por potrero</b>.</p>
+    </div>
+
+    <div id="limpPotrero" hidden></div>
+  </section>
+
   <!-- ============ INFORME ============ -->
   <section id="pantallaInforme" hidden>
     <div class="card" id="cajaRango" style="margin-top:14px">
@@ -359,9 +461,14 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   <div class="in">
     <button type="button" data-pant="Cargar" aria-selected="true">Cargar</button>
     <button type="button" data-pant="Pendientes" aria-selected="false">Pendientes <span class="cuenta" id="cuentaPend" hidden>0</span></button>
+    <button type="button" data-pant="Limpieza" aria-selected="false">Limpieza <span class="cuenta" id="cuentaLimp" hidden>0</span></button>
     <button type="button" data-pant="Informe" aria-selected="false">Informe</button>
   </div>
 </nav>
+
+<!-- Fuera de las pantallas: así siguen andando aunque la pantalla esté oculta. -->
+<input type="file" id="archivoCamara" accept="image/*" capture="environment" hidden>
+<input type="file" id="archivoGaleria" accept="image/*" hidden>
 
 <script>
 (function () {
@@ -369,12 +476,23 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   var API = "https://script.google.com/macros/s/AKfycbzMwrca1wiIFyp0PRNpN4ZbuehHwIPbkg9l7dQtZ58WbBex6IcPC4otlOBu4cuHT0S1/exec";
 
-  var POTREROS = ["A06","A07","A15A","A15B","A15C","A17","A18A","A18B","A18C","A20A","A20B","A20C",
+  var POTREROS = ["A06","A07","A13","A15A","A15B","A15C","A17","A18A","A18B","A18C","A20A","A20B","A20C",
     "PIQUETE CABALLO","A21","A22","A23","A24","A25","A28","A30","A31","A32","A33","A35","A36","A37",
     "A38","A39","A40","A41","A42","A43","A44","A45","A46","A47","A48","A49","A50","A51","A52","A53",
-    "A54","A55","A56","A57","C16A","C16B"];
+    "A54","A55","A56","A57",
+    "C01A","C01B","C01C","C01D","C02A","C02B","C02C","C02D","C03A","C03B","C03C","C03D",
+    "C04A","C04B","C04C","C04D","C05A","C05B","C05C","C05D","C06A","C06B",
+    "C16A","C16B","C18","C19A","C19B"];
 
   var TIPOS = ["CAÑO ROTO","BAJA PRESIÓN","PILETA SECA","BOYA ROTA"];
+  // Los trabajos de bebedero viajan por el mismo camino que las bajas, pero con estas
+  // categorías. Así no hay que tocar nada de la planilla ni del script.
+  //   A LIMPIAR = pileta marcada para limpiar. Si figura RESUELTO, ya la limpiaron.
+  //   LIMPIEZA  = limpieza hecha sin que nadie la hubiera marcado antes.
+  //   PLANTAS   = cambio de las plantas del bebedero.
+  var CAT_PEND = "A LIMPIAR", CAT_LIMP = "LIMPIEZA", CAT_PLANTAS = "PLANTAS";
+  var CATS_BEBEDERO = [CAT_PEND, CAT_LIMP, CAT_PLANTAS];
+  var DIAS_ALERTA = 30;   // pasados estos días sin limpiar, la pileta se muestra en rojo
   var VAR_COLOR = {"CAÑO ROTO":"--s1","BAJA PRESIÓN":"--s2","PILETA SECA":"--s3","BOYA ROTA":"--s4"};
   // además del color, cada tipo tiene su forma en el mapa
   var FORMA = {"CAÑO ROTO":"circulo","BAJA PRESIÓN":"cuadrado","PILETA SECA":"rombo","BOYA ROTA":"triangulo"};
@@ -382,8 +500,9 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   var CENTRO = [-23.314378, -56.699159];
 
   var datos = [], autor = "", ubic = null, tipoSel = "";
-  var fotoCarga = "", fotosArreglo = {}, destinoFoto = "carga";
-  var verEstado = "PENDIENTE", enLinea = true, sinEnviar = 0;
+  var fotoCarga = "", fotoLimp = "", fotosArreglo = {}, destinoFoto = "carga";
+  var verEstado = "PENDIENTE", verLimp = "FALTA", enLinea = true, sinEnviar = 0;
+  var tipoLimpSel = "LIMPIEZA", abiertoPot = "";
   var mapa = null, marcador = null, capaSat = null, capaCalle = null, puntoTmp = null, viendoSat = true;
 
   function $(id){ return document.getElementById(id); }
@@ -581,11 +700,12 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
   // ---------- navegación ----------
   function irA(nombre){
-    ["Cargar","Pendientes","Informe"].forEach(function(n){ $("pantalla"+n).hidden = (n!==nombre); });
+    ["Cargar","Pendientes","Limpieza","Informe"].forEach(function(n){ $("pantalla"+n).hidden = (n!==nombre); });
     var bs = document.querySelectorAll("nav.tabs button");
     for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-selected", String(bs[i].getAttribute("data-pant")===nombre));
     window.scrollTo(0,0);
     if (nombre==="Pendientes") pintarTrabajos();
+    if (nombre==="Limpieza") pintarLimpieza();
     if (nombre==="Informe") pintarInforme();
   }
 
@@ -662,10 +782,35 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   // ---------- pendientes ----------
   // Las borradas quedan marcadas en la planilla, pero no se muestran en ningún lado.
   function vivas(){ return datos.filter(function(f){ return f.ESTADO !== "BORRADO"; }); }
+  // Las bajas de agua y los trabajos de bebedero comparten la planilla pero nunca se
+  // mezclan en pantalla.
+  function esBebedero(f){ return CATS_BEBEDERO.indexOf(f.CATEGORIA) !== -1; }
+  function aguas(){ return vivas().filter(function(f){ return !esBebedero(f); }); }
+
+  // Piletas marcadas que todavía nadie limpió.
+  function pendientesLimp(){
+    return vivas().filter(function(f){ return f.CATEGORIA === CAT_PEND && f.ESTADO !== "RESUELTO"; });
+  }
+  // Limpiezas efectivamente hechas, vengan de una marca previa o cargadas directo.
+  function limpiezasHechas(){
+    return vivas().filter(function(f){
+      return f.CATEGORIA === CAT_LIMP || (f.CATEGORIA === CAT_PEND && f.ESTADO === "RESUELTO");
+    });
+  }
+  function cambiosPlantas(){ return vivas().filter(function(f){ return f.CATEGORIA === CAT_PLANTAS; }); }
+
+  // Una limpieza que vino de una marca previa guarda la fecha y la foto en los campos
+  // del arreglo; una cargada directo, en los campos normales. Esto empareja las dos.
+  function fechaHecho(f){ return f.CATEGORIA === CAT_PEND ? f.FECHA_ARREGLO : f.FECHA; }
+  function quienHecho(f){ return (f.CATEGORIA === CAT_PEND ? f.RESUELTO_POR : f.CARGADO_POR) || "—"; }
+  function fotoHecho(f){ return f.CATEGORIA === CAT_PEND ? f.FOTO_ARREGLO : f.FOTO; }
+  function notaHecho(f){ return (f.CATEGORIA === CAT_PEND ? f.NOTA_ARREGLO : f.OBSERVACION) || ""; }
 
   function pintarCuentas(){
-    var n = vivas().filter(function(f){ return f.ESTADO!=="RESUELTO"; }).length;
+    var n = aguas().filter(function(f){ return f.ESTADO!=="RESUELTO"; }).length;
     var b = $("cuentaPend"); b.textContent=n; b.hidden=(n===0);
+    var nl = pendientesLimp().length;
+    var bl = $("cuentaLimp"); bl.textContent=nl; bl.hidden=(nl===0);
   }
 
   function bloqueFotos(f){
@@ -676,7 +821,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   }
 
   function pintarTrabajos(){
-    var filas = vivas().filter(function(f){
+    var filas = aguas().filter(function(f){
       return verEstado==="RESUELTO" ? f.ESTADO==="RESUELTO" : f.ESTADO!=="RESUELTO";
     }).sort(function(a,b){
       // pendientes: lo que espera hace más días, arriba. arregladas: lo último, arriba.
@@ -738,6 +883,244 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       : "No hay nada pendiente. Todo arreglado.";
   }
 
+  // ---------- limpieza y plantas ----------
+  function limpiarFormL(){
+    $("potreroL").value=""; $("obsL").value="";
+    fotoLimp="";
+    $("fotoTxtL").textContent = tipoLimpSel === CAT_PLANTAS
+      ? "Obligatoria: sacale la foto con las plantas ya cambiadas"
+      : "Obligatoria: sacale la foto con el bebedero ya limpio";
+    $("miniLimp").hidden=true; $("miniLimp").removeAttribute("src");
+    $("fechaL").value = hoyISO();
+  }
+
+  // Una tarjeta de trabajo hecho, igual para una limpieza que para un cambio de plantas.
+  function tarjetaHecho(f, conBorrar){
+    var planta = f.CATEGORIA === CAT_PLANTAS;
+    var color  = planta ? "--s2" : "--ok";
+    var nota   = notaHecho(f), foto = fotoHecho(f);
+    var cuerpo =
+        '<div class="item" data-id="'+esc(f.ID)+'" style="--c:var('+color+')">'
+      +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
+      +     '<time>'+esc(corta(fechaHecho(f)))+'</time></div>'
+      +   '<div class="tip">'+(planta ? "Cambio de plantas" : "Limpieza")+'</div>'
+      +   (nota ? '<div class="obs">'+esc(nota)+'</div>' : '')
+      +   '<div class="obs">'+(planta ? "Cambiadas" : "Limpiado")+' por '+esc(quienHecho(f))+'</div>'
+      +   (foto ? '<div class="fotos"><a href="'+esc(foto)+'" target="_blank" rel="noopener">'
+                + '<img src="'+esc(foto)+'" alt="Foto del trabajo" loading="lazy">'
+                + '<span>'+(planta ? "Plantas" : "Limpio")+'</span></a></div>' : '')
+      + '</div>';
+    if (!conBorrar) return '<li>'+cuerpo+'</li>';
+    return '<li class="fila-desliz">'
+         + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta carga">'
+         +   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
+         +   'Borrar'
+         + '</button>' + cuerpo + '</li>';
+  }
+
+  function trabajosOrdenados(){
+    return limpiezasHechas().concat(cambiosPlantas()).sort(function(a,b){
+      var c = String(fechaHecho(b)||"").localeCompare(String(fechaHecho(a)||""));
+      if (c === 0) c = String(b.ID).localeCompare(String(a.ID));
+      return c;   // lo último, arriba
+    });
+  }
+
+  // Lo cargado hoy: es lo que mira Juan todos los días para saber si se hizo algo.
+  function pintarHoy(){
+    var hoy = hoyISO();
+    var hechos = trabajosOrdenados().filter(function(f){ return fechaHecho(f) === hoy; });
+    var limp = hechos.filter(function(f){ return f.CATEGORIA !== CAT_PLANTAS; }).length;
+    var pla  = hechos.length - limp;
+
+    var h = '<h2 class="sec" style="margin:0">Lo de hoy</h2>';
+    if (!hechos.length){
+      h += '<p style="margin:10px 0 0;font-size:15px;color:var(--fg-soft)">'
+         + 'Hoy todavía no se cargó ningún trabajo.</p>';
+    } else {
+      h += '<div class="tiles" style="margin-top:10px">'
+         +   '<div class="tile"><b>'+limp+'</b><span>Limpiezas</span></div>'
+         +   '<div class="tile"><b>'+pla+'</b><span>Cambios de plantas</span></div>'
+         + '</div><ul class="lista">';
+      for (var i=0;i<hechos.length;i++) h += tarjetaHecho(hechos[i], false);
+      h += '</ul>';
+    }
+    $("cajaHoy").innerHTML = h;
+  }
+
+  // Las piletas marcadas que todavía nadie limpió. La que espera hace más días, arriba.
+  function pintarFalta(){
+    var filas = pendientesLimp().slice().sort(function(a,b){
+      return String(a.FECHA).localeCompare(String(b.FECHA));
+    });
+    var hoy = hoyISO(), html = "";
+    for (var i=0;i<filas.length;i++){
+      var f = filas[i], d = diasEntre(f.FECHA, hoy);
+      var espera = d === null ? "" : d <= 0 ? "Marcada hoy" : d === 1 ? "Esperando 1 día" : "Esperando "+d+" días";
+      html += '<li class="fila-desliz">'
+            + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta marca">'
+            +   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
+            +   'Borrar'
+            + '</button>'
+            + '<div class="item" data-id="'+esc(f.ID)+'" style="--c:var(--alerta)">'
+            +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
+            +     '<time>'+esc(corta(f.FECHA))+'</time></div>'
+            +   '<div class="tip">'+esc(espera)+'</div>'
+            +   (f.OBSERVACION ? '<div class="obs">'+esc(f.OBSERVACION)+'</div>' : '')
+            +   '<div class="obs">Marcada por '+esc(f.CARGADO_POR||"—")+'</div>'
+            +   '<div class="acc"><button class="chico fuerte" type="button" data-limp="'+esc(f.ID)+'">Ya la limpié</button></div>'
+            +   '<div class="panel-fix" id="fixL-'+esc(f.ID)+'" hidden>'
+            +     '<div class="foto-caja">'
+            +       '<img class="miniatura" id="minilimp-'+esc(f.ID)+'" alt="" hidden>'
+            +       '<div class="txt" id="txtlimp-'+esc(f.ID)+'">Foto obligatoria de la pileta limpia</div>'
+            +     '</div>'
+            +     '<div class="botones-foto">'
+            +       '<button class="chico" type="button" data-camL="'+esc(f.ID)+'">Cámara</button>'
+            +       '<button class="chico" type="button" data-galL="'+esc(f.ID)+'">Galería</button>'
+            +     '</div>'
+            +     '<input type="text" placeholder="Qué se hizo (opcional)" id="notaL-'+esc(f.ID)+'">'
+            +     '<button class="chico fuerte" type="button" data-confL="'+esc(f.ID)+'">Confirmar limpieza</button>'
+            +   '</div>'
+            + '</div></li>';
+    }
+    $("listaFalta").innerHTML = html;
+    $("pistaDeslizF").hidden = filas.length === 0;
+    $("vacioFalta").hidden = filas.length > 0;
+  }
+
+  // Última limpieza de cada potrero. Lo que hace más tiempo que no se toca, arriba de todo.
+  // Solo los potreros que tienen algún trabajo cargado. Los que nunca se tocaron no
+  // aparecen acá: para marcarlos está el casillero de "Falta hacer".
+  function estadoPorPotrero(){
+    var ultima = {};
+    limpiezasHechas().forEach(function(f){
+      var p = String(f.POTRERO||"").toUpperCase(), fe = fechaHecho(f);
+      if (!p || !fe) return;
+      if (!ultima[p] || fe > fechaHecho(ultima[p])) ultima[p] = f;
+    });
+
+    // una pileta ya marcada no se vuelve a marcar
+    var yaMarcados = {};
+    pendientesLimp().forEach(function(f){ yaMarcados[String(f.POTRERO||"").toUpperCase()] = true; });
+
+    // los que solo tuvieron cambio de plantas también se muestran, al final
+    var conAlgo = {};
+    trabajosOrdenados().forEach(function(f){
+      var p = String(f.POTRERO||"").toUpperCase();
+      if (p) conAlgo[p] = true;
+    });
+
+    var hoy = hoyISO(), con = [];
+    Object.keys(conAlgo).forEach(function(p){
+      var u = ultima[p];
+      con.push({ pot:p,
+                 fecha: u ? fechaHecho(u) : "",
+                 quien: u ? quienHecho(u) : "",
+                 dias:  u ? diasEntre(fechaHecho(u), hoy) : null,
+                 foto:  u ? fotoHecho(u) : "",
+                 nota:  u ? notaHecho(u) : "",
+                 marcado: !!yaMarcados[p] });
+    });
+    con.sort(function(a,b){
+      if (a.dias === null && b.dias === null) return a.pot.localeCompare(b.pot);
+      if (a.dias === null) return 1;   // sin limpieza, al final
+      if (b.dias === null) return -1;
+      return b.dias - a.dias;
+    });
+    return { con:con, marcados:yaMarcados };
+  }
+
+  function historialDe(pot){
+    pot = String(pot||"").toUpperCase();
+    return trabajosOrdenados().filter(function(f){ return String(f.POTRERO).toUpperCase() === pot; });
+  }
+
+  var FLECHA = '<span class="flecha"><svg viewBox="0 0 24 24" aria-hidden="true">'
+             + '<path d="M6 9l6 6 6-6"/></svg></span>';
+
+  // Lo que se ve al abrir una franja: la foto de la última limpieza y el historial.
+  function detalleDe(x){
+    var h = '<div class="detalle">';
+
+    if (x.foto){
+      h += '<a href="'+esc(x.foto)+'" target="_blank" rel="noopener">'
+         +   '<img class="foto-grande" src="'+esc(x.foto)+'" alt="Última limpieza de '+esc(x.pot)+'" loading="lazy">'
+         + '</a>'
+         + '<div class="pie">Así quedó el '+esc(corta(x.fecha))+', limpiada por '+esc(x.quien)+'.'
+         +   (x.nota ? ' '+esc(x.nota) : '') + '</div>';
+    } else if (x.fecha){
+      h += '<div class="pie">Limpiada el '+esc(corta(x.fecha))+' por '+esc(x.quien)
+         +   ', pero sin foto cargada.'+(x.nota ? ' '+esc(x.nota) : '')+'</div>';
+    } else {
+      h += '<div class="pie">Todavía no tiene ninguna limpieza cargada.</div>';
+    }
+
+    h += x.marcado
+      ? '<div class="acc" style="margin-top:12px"><span class="chico apagado">Ya está en la lista para limpiar</span></div>'
+      : '<div class="acc" style="margin-top:12px"><button class="chico" type="button" data-marcar="'+esc(x.pot)+'">Marcar para limpiar</button></div>';
+
+    var hist = historialDe(x.pot);
+    if (hist.length){
+      h += '<h3>Todo lo que se le hizo</h3>';
+      for (var i=0;i<hist.length;i++){
+        var f = hist[i], planta = f.CATEGORIA === CAT_PLANTAS, fo = fotoHecho(f), no = notaHecho(f);
+        h += '<div class="trab">'
+           +   (fo ? '<a href="'+esc(fo)+'" target="_blank" rel="noopener"><img src="'+esc(fo)+'" alt="Foto" loading="lazy"></a>'
+                   : '<span class="sinfoto"></span>')
+           +   '<span class="txt" style="--c2:var('+(planta?"--s2":"--ok")+')">'
+           +     '<b>'+(planta ? "Cambio de plantas" : "Limpieza")+'</b>'
+           +     '<span>'+esc(corta(fechaHecho(f)))+' · '+esc(quienHecho(f))+(no ? ' · '+esc(no) : '')+'</span>'
+           +   '</span>'
+           +   '<button type="button" data-borrarT="'+esc(f.ID)+'">Borrar</button>'
+           + '</div>';
+      }
+    }
+    return h + '</div>';
+  }
+
+  function pintarPorPotrero(){
+    var con = estadoPorPotrero().con;
+    var h = '<h2 class="sec">Hace cuánto que no se limpia</h2>';
+
+    if (!con.length){
+      h += '<div class="vacio">Todavía no se cargó ningún trabajo. A medida que carguen, '
+         + 'acá vas a ver cada pileta con su foto y hace cuánto que no se toca.</div>';
+      $("limpPotrero").innerHTML = h;
+      return;
+    }
+
+    h += '<p class="mapa-nota" style="padding:6px 0 0;margin:0">En rojo, las que pasaron los '
+       + DIAS_ALERTA + ' días. Tocá una pileta para ver la foto.</p><ul class="lista">';
+
+    for (var i=0;i<con.length;i++){
+      var x = con[i], abierto = (abiertoPot === x.pot);
+      var cuanto = x.dias === null ? "Sin limpieza"
+                 : x.dias <= 0 ? '<b>Hoy</b>'
+                 : x.dias === 1 ? '<b>1</b> día'
+                 : '<b>'+x.dias+'</b> días';
+      var color = x.dias === null ? "--line"
+                : x.dias >= DIAS_ALERTA ? "--malo"
+                : x.dias >= DIAS_ALERTA - 10 ? "--alerta" : "--ok";
+      h += '<li class="item franja'+(abierto?" abierta":"")+'" style="--c:var('+color+')" '
+         +     'data-pot="'+esc(x.pot)+'" role="button" tabindex="0" aria-expanded="'+abierto+'">'
+         +   '<div class="fila1"><span class="pot">'+esc(x.pot)+'</span>'
+         +     '<span class="dias">'+cuanto+'</span>'+FLECHA+'</div>'
+         +   (x.fecha ? '<div class="obs">Última: '+esc(corta(x.fecha))+' · '+esc(x.quien)+'</div>'
+                      : '<div class="obs">Solo cambio de plantas</div>')
+         +   (abierto ? detalleDe(x) : '')
+         + '</li>';
+    }
+    $("limpPotrero").innerHTML = h + '</ul>';
+  }
+
+  function pintarLimpieza(){
+    $("limpFalta").hidden   = (verLimp !== "FALTA");
+    $("limpCargar").hidden  = (verLimp !== "CARGAR");
+    $("limpPotrero").hidden = (verLimp !== "POTRERO");
+    if (verLimp === "FALTA"){ pintarHoy(); pintarFalta(); }
+    else if (verLimp === "POTRERO") pintarPorPotrero();
+  }
+
   // ---------- informe ----------
   // El período sale siempre de los dos casilleros de fecha. Los atajos solo los completan.
   function fechasAtajo(cual){
@@ -756,7 +1139,13 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   }
   function delPeriodo(){
     var r = rango();
-    return vivas().filter(function(f){ var x=String(f.FECHA||""); return x>=r.desde && x<=r.hasta; });
+    return aguas().filter(function(f){ var x=String(f.FECHA||""); return x>=r.desde && x<=r.hasta; });
+  }
+  function trabajosDelPeriodo(){
+    var r = rango();
+    return trabajosOrdenados().filter(function(f){
+      var x = String(fechaHecho(f)||""); return x>=r.desde && x<=r.hasta;
+    });
   }
   function barras(items, colorFijo){
     if (!items.length) return '<div class="vacio">Sin datos en este período.</div>';
@@ -848,6 +1237,53 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     setTimeout(function(){ mapaInf.invalidateSize(); }, 200);
   }
 
+  // En el informe los bebederos van aparte, al final, para no mezclarlos con las bajas de agua.
+  function bloqueLimpiezaInforme(){
+    var trab = trabajosDelPeriodo();
+    var lim  = trab.filter(function(f){ return f.CATEGORIA !== CAT_PLANTAS; });
+    var pla  = trab.length - lim.length;
+    var cuenta = {};
+    lim.forEach(function(f){ var p=String(f.POTRERO||"—").toUpperCase(); cuenta[p]=(cuenta[p]||0)+1; });
+
+    var pend = pendientesLimp().slice().sort(function(a,b){
+      return String(a.FECHA).localeCompare(String(b.FECHA));
+    });
+    var hoy = hoyISO();
+
+    var hPend = "";
+    if (pend.length){
+      hPend = '<h2 class="sec" style="margin:18px 0 0">Piletas que siguen sin limpiarse</h2><ul class="lista">';
+      for (var i=0;i<pend.length;i++){
+        var d = diasEntre(pend[i].FECHA, hoy);
+        hPend += '<li class="item" style="--c:var(--alerta)">'
+               +   '<div class="fila1"><span class="pot">'+esc(pend[i].POTRERO)+'</span>'
+               +     '<time>'+(d!==null ? d+" días esperando" : esc(corta(pend[i].FECHA)))+'</time></div>'
+               + '</li>';
+      }
+      hPend += '</ul>';
+    }
+
+    var olvidados = estadoPorPotrero().con.filter(function(x){ return x.dias !== null; }).slice(0,5);
+    var hOlv = "";
+    if (olvidados.length){
+      hOlv = '<h2 class="sec" style="margin:18px 0 0">Los que hace más tiempo que no se limpian</h2>'
+           + barras(olvidados.map(function(x){
+               return { etiqueta: x.pot + "  (última: " + corta(x.fecha) + ")", valor: x.dias===null?0:x.dias };
+             }), "--ok")
+           + '<p class="mapa-nota" style="padding:8px 0 0;margin:0">El número es la cantidad de días desde la última limpieza cargada.</p>';
+    }
+
+    return '<div class="card"><h2 class="sec" style="margin:0">Bebederos: limpieza y plantas</h2>'
+         +   '<div class="tiles" style="margin-top:10px">'
+         +     '<div class="tile"><b>'+lim.length+'</b><span>Limpiezas en el período</span></div>'
+         +     '<div class="tile"><b>'+pla+'</b><span>Cambios de plantas</span></div>'
+         +     '<div class="tile"><b>'+Object.keys(cuenta).length+'</b><span>Potreros limpiados</span></div>'
+         +     '<div class="tile"><b>'+pend.length+'</b><span>Marcadas sin limpiar</span></div>'
+         +   '</div>'
+         +   hPend + hOlv
+         + '</div>';
+  }
+
   function pintarInforme(){
     var r = rango(), filas = delPeriodo(), i;
     var resueltas = filas.filter(function(f){ return f.ESTADO==="RESUELTO"; });
@@ -930,7 +1366,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       + '</div>'
       + '<div class="card"><h2 class="sec" style="margin:0">Cantidad por tipo</h2>'+barras(porTipo,null)+'</div>'
       + '<div class="card"><h2 class="sec" style="margin:0">Potreros que más dieron problema</h2>'+barras(porPotrero,"--s1")+'</div>'
-      + hSem + hViejas;
+      + hSem + hViejas + bloqueLimpiezaInforme();
 
     pintarMapaInforme(filas);
   }
@@ -950,6 +1386,25 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
       pend.sort(function(a,b){ return String(a.FECHA).localeCompare(String(b.FECHA)); });
       pend.forEach(function(f){ t += "- "+f.POTRERO+" - "+f.CATEGORIA+" ("+corta(f.FECHA)+")\n"; });
     }
+
+    var trab = trabajosDelPeriodo();
+    var lim = trab.filter(function(f){ return f.CATEGORIA !== CAT_PLANTAS; }).length;
+    t += "\nBEBEDEROS\nLimpiezas: "+lim+"\nCambios de plantas: "+(trab.length-lim)+"\n";
+
+    var pendL = pendientesLimp();
+    if (pendL.length){
+      t += "\nMARCADAS Y SIN LIMPIAR:\n";
+      pendL.slice().sort(function(a,b){ return String(a.FECHA).localeCompare(String(b.FECHA)); })
+        .forEach(function(f){
+          var d = diasEntre(f.FECHA, hoyISO());
+          t += "- "+f.POTRERO+(d!==null ? " ("+d+" días)" : "")+"\n";
+        });
+    }
+    var olv = estadoPorPotrero().con.filter(function(x){ return x.dias !== null; }).slice(0,5);
+    if (olv.length){
+      t += "\nHace más tiempo sin limpiar:\n";
+      olv.forEach(function(x){ t += "- "+x.pot+": "+(x.dias===null?"—":x.dias+" días")+"\n"; });
+    }
     return t;
   }
 
@@ -966,7 +1421,11 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     setTimeout(function(){ if(ta.parentNode) ta.parentNode.removeChild(ta); }, 6000);
   }
 
-  function pintarTodo(){ pintarCuentas(); pintarTrabajos(); if(!$("pantallaInforme").hidden) pintarInforme(); }
+  function pintarTodo(){
+    pintarCuentas(); pintarTrabajos();
+    if(!$("pantallaLimpieza").hidden) pintarLimpieza();
+    if(!$("pantallaInforme").hidden) pintarInforme();
+  }
 
   // ---------- arranque ----------
   var ops="";
@@ -976,6 +1435,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   datos = normalizar(leer(K_CACHE, []) || []);
   autor = leer(K_AUTOR, "") || "";
   $("fecha").value = hoyISO();
+  $("fechaL").value = hoyISO();
   var ini = fechasAtajo("7");
   $("desde").value = ini[0];
   $("hasta").value = ini[1];
@@ -984,6 +1444,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     $("quienSoy").textContent = autor ? ("Agua y bebederos · "+autor) : "Agua y bebederos";
     $("pedirNombre").hidden = !!autor;
     $("form").hidden = !autor;
+    $("formLimpieza").hidden = !autor;
   }
   mostrarAutor();
 
@@ -1048,6 +1509,8 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   }
   $("btnCamara").addEventListener("click", function(){ pedirFoto("carga", true); });
   $("btnGaleria").addEventListener("click", function(){ pedirFoto("carga", false); });
+  $("btnCamaraL").addEventListener("click", function(){ pedirFoto("limpieza", true); });
+  $("btnGaleriaL").addEventListener("click", function(){ pedirFoto("limpieza", false); });
 
   function recibirFoto(){
     var archivo = this.files && this.files[0];
@@ -1060,9 +1523,15 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
         fotoCarga = b64;
         $("miniCarga").src = b64; $("miniCarga").hidden = false;
         $("fotoTxt").textContent = "Foto lista";
+      } else if (destino === "limpieza"){
+        fotoLimp = b64;
+        $("miniLimp").src = b64; $("miniLimp").hidden = false;
+        $("fotoTxtL").textContent = "Foto lista";
       } else {
         fotosArreglo[destino] = b64;
-        var mini = $("minifix-"+destino), txt = $("txtfix-"+destino);
+        // la fila puede estar en la lista de pendientes de agua o en la de limpieza
+        var mini = $("minifix-"+destino) || $("minilimp-"+destino);
+        var txt  = $("txtfix-"+destino)  || $("txtlimp-"+destino);
         if (mini){ mini.src = b64; mini.hidden = false; }
         if (txt) txt.textContent = "Foto lista";
       }
@@ -1097,6 +1566,196 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
 
     mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
       .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
+  });
+
+  // ---------- guardar un trabajo hecho ----------
+  $("formLimpieza").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var pot = $("potreroL").value.trim().toUpperCase();
+    if (!pot){ $("potreroL").focus(); return; }
+    var planta = tipoLimpSel === CAT_PLANTAS;
+    if (!fotoLimp){
+      aviso(planta ? "Falta la foto de las plantas cambiadas" : "Falta la foto del bebedero limpio", true);
+      return;
+    }
+
+    var fecha = $("fechaL").value || hoyISO();
+    var obs = $("obsL").value.trim();
+    var payload, i;
+
+    // Si esa pileta ya estaba marcada para limpiar, esta carga cierra esa marca
+    // en vez de abrir una fila nueva. Así no queda figurando como pendiente.
+    var marcada = planta ? null : pendientesLimp().filter(function(f){
+      return String(f.POTRERO).toUpperCase() === pot;
+    })[0];
+
+    if (marcada){
+      payload = { accion:"resolver", id:marcada.ID, resueltoPor:autor, notaArreglo:obs,
+                  fechaArreglo:tal(fecha), foto:fotoLimp };
+      for (i=0;i<datos.length;i++){
+        if (String(datos[i].ID) === String(marcada.ID)){
+          datos[i].ESTADO="RESUELTO"; datos[i].RESUELTO_POR=autor;
+          datos[i].FECHA_ARREGLO=fecha; datos[i].NOTA_ARREGLO=obs;
+        }
+      }
+    } else {
+      var id = String(Date.now())+String(Math.floor(Math.random()*1000));
+      payload = { accion:"nueva", fila:{
+        id:tal(id), fecha:tal(fecha), potrero:pot, categoria:tipoLimpSel,
+        obs:obs, lat:"", lon:"", autor:autor, foto:fotoLimp
+      }};
+      datos.push({ ID:id, FECHA:fecha, POTRERO:pot, CATEGORIA:tipoLimpSel, OBSERVACION:obs,
+                   LAT:"", LON:"", CARGADO_POR:autor, ESTADO:"HECHO",
+                   RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"", FOTO:"", FOTO_ARREGLO:"" });
+    }
+
+    guardar(K_CACHE, datos);
+    limpiarFormL(); pintarLimpieza(); pintarCuentas();
+    aviso((planta ? "Cambio de plantas guardado: " : "Limpieza guardada: ") + pot);
+
+    mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
+      .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
+  });
+
+  $("filtroLimpieza").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest("button[data-verl]") : null;
+    if (!b) return;
+    verLimp = b.getAttribute("data-verl");
+    var bs = this.querySelectorAll("button");
+    for (var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", String(bs[i]===b));
+    pintarLimpieza();
+  });
+
+  // elegir entre limpieza y cambio de plantas
+  $("tiposLimp").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest(".tipo") : null;
+    if (!b) return;
+    var ts = this.querySelectorAll(".tipo");
+    for (var i=0;i<ts.length;i++) ts[i].setAttribute("aria-pressed","false");
+    b.setAttribute("aria-pressed","true");
+    tipoLimpSel = b.getAttribute("data-tl");
+    var planta = tipoLimpSel === CAT_PLANTAS;
+    $("rotuloFotoL").textContent = planta ? "Foto de las plantas cambiadas" : "Foto del bebedero limpio";
+    $("obsL").placeholder = planta
+      ? "Ej: estaban podridas, se repusieron todas"
+      : "Ej: estaba con mucho barro, se vació entera";
+    if (!fotoLimp) $("fotoTxtL").textContent = planta
+      ? "Obligatoria: sacale la foto con las plantas ya cambiadas"
+      : "Obligatoria: sacale la foto con el bebedero ya limpio";
+  });
+
+  // ---------- marcar una pileta para limpiar ----------
+  function marcarPileta(pot){
+    pot = String(pot||"").trim().toUpperCase();
+    if (!pot) return;
+    var yaEsta = pendientesLimp().some(function(f){ return String(f.POTRERO).toUpperCase() === pot; });
+    if (yaEsta){ aviso(pot + " ya está en la lista", true); return; }
+
+    var id = String(Date.now())+String(Math.floor(Math.random()*1000));
+    var fecha = hoyISO();
+    var payload = { accion:"nueva", fila:{
+      id:tal(id), fecha:tal(fecha), potrero:pot, categoria:CAT_PEND,
+      obs:"", lat:"", lon:"", autor:autor, foto:""
+    }};
+
+    datos.push({ ID:id, FECHA:fecha, POTRERO:pot, CATEGORIA:CAT_PEND, OBSERVACION:"",
+                 LAT:"", LON:"", CARGADO_POR:autor, ESTADO:"PENDIENTE",
+                 RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"", FOTO:"", FOTO_ARREGLO:"" });
+    guardar(K_CACHE, datos);
+    $("potreroM").value = "";
+    pintarLimpieza(); pintarCuentas();
+    aviso(pot + " agregada a la lista");
+
+    mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
+      .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
+  }
+
+  $("btnMarcar").addEventListener("click", function(){
+    var pot = $("potreroM").value.trim();
+    if (!pot){ $("potreroM").focus(); return; }
+    marcarPileta(pot);
+  });
+  $("potreroM").addEventListener("keydown", function(ev){
+    if (ev.key === "Enter"){ ev.preventDefault(); $("btnMarcar").click(); }
+  });
+
+  $("limpPotrero").addEventListener("click", function(ev){
+    var t = ev.target;
+
+    var b = t.closest ? t.closest("button[data-marcar]") : null;
+    if (b){ marcarPileta(b.getAttribute("data-marcar")); return; }
+
+    // borrar una carga equivocada: hay que tocar dos veces
+    var del = t.closest ? t.closest("button[data-borrarT]") : null;
+    if (del){
+      if (del.getAttribute("data-armado") === "1"){ borrarCarga(del.getAttribute("data-borrarT")); return; }
+      var otros = this.querySelectorAll("button[data-armado]");
+      for (var i=0;i<otros.length;i++){
+        otros[i].removeAttribute("data-armado");
+        otros[i].classList.remove("peligro");
+        otros[i].textContent = "Borrar";
+      }
+      del.setAttribute("data-armado","1");
+      del.classList.add("peligro");
+      del.textContent = "Confirmar";
+      return;
+    }
+
+    if (t.closest && t.closest("a")) return;      // tocó la foto para agrandarla
+
+    var fr = t.closest ? t.closest(".franja") : null;
+    if (!fr) return;
+    var pot = fr.getAttribute("data-pot");
+    abiertoPot = (abiertoPot === pot) ? "" : pot;  // una sola abierta por vez
+    pintarPorPotrero();
+  });
+
+  $("limpPotrero").addEventListener("keydown", function(ev){
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    var fr = ev.target.closest ? ev.target.closest(".franja") : null;
+    if (!fr || ev.target !== fr) return;
+    ev.preventDefault();
+    var pot = fr.getAttribute("data-pot");
+    abiertoPot = (abiertoPot === pot) ? "" : pot;
+    pintarPorPotrero();
+  });
+
+  // ---------- cerrar una pileta marcada ----------
+  $("listaFalta").addEventListener("click", function(ev){
+    var del = ev.target.closest ? ev.target.closest("button[data-borrar]") : null;
+    if (del){ borrarCarga(del.getAttribute("data-borrar")); return; }
+
+    var abrir = ev.target.closest ? ev.target.closest("button[data-limp]") : null;
+    if (abrir){
+      var p = $("fixL-"+abrir.getAttribute("data-limp"));
+      if (p) p.hidden = !p.hidden;
+      return;
+    }
+    var cam = ev.target.closest ? ev.target.closest("button[data-camL]") : null;
+    if (cam){ pedirFoto(cam.getAttribute("data-camL"), true); return; }
+    var gal = ev.target.closest ? ev.target.closest("button[data-galL]") : null;
+    if (gal){ pedirFoto(gal.getAttribute("data-galL"), false); return; }
+
+    var conf = ev.target.closest ? ev.target.closest("button[data-confL]") : null;
+    if (conf){
+      var id = conf.getAttribute("data-confL");
+      if (!fotosArreglo[id]){ aviso("Falta la foto de la pileta limpia", true); return; }
+      var nota = $("notaL-"+id) ? $("notaL-"+id).value.trim() : "";
+      var payload = { accion:"resolver", id:id, resueltoPor:autor, notaArreglo:nota,
+                      fechaArreglo:tal(hoyISO()), foto:fotosArreglo[id] };
+      for (var i=0;i<datos.length;i++){
+        if (String(datos[i].ID) === String(id)){
+          datos[i].ESTADO="RESUELTO"; datos[i].RESUELTO_POR=autor;
+          datos[i].FECHA_ARREGLO=hoyISO(); datos[i].NOTA_ARREGLO=nota;
+        }
+      }
+      delete fotosArreglo[id];
+      guardar(K_CACHE, datos);
+      pintarLimpieza(); pintarCuentas();
+      aviso("Limpieza registrada");
+      mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
+        .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
+    }
   });
 
   $("filtroEstado").addEventListener("click", function(ev){
@@ -1148,39 +1807,21 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
   $("btnActualizar").addEventListener("click", function(){ sincronizar(); });
 
   // ---------- arrastrar para borrar ----------
+  // Anda igual en la lista de pendientes y en la de limpiezas.
+  var LISTAS = ["listaTrabajos","listaFalta"];
   var arr = null;
   function tarjeta(el){ return el && el.closest ? el.closest(".item") : null; }
   function cerrarTodas(menos){
-    var items = $("listaTrabajos").querySelectorAll(".item");
-    for (var i=0;i<items.length;i++){
-      if (items[i] === menos) continue;
-      items[i].classList.add("suave");
-      items[i].style.transform = "";
-      if (items[i].parentNode) items[i].parentNode.classList.remove("abierta");
-    }
+    LISTAS.forEach(function(nombre){
+      var items = $(nombre).querySelectorAll(".item");
+      for (var i=0;i<items.length;i++){
+        if (items[i] === menos) continue;
+        items[i].classList.add("suave");
+        items[i].style.transform = "";
+        if (items[i].parentNode) items[i].parentNode.classList.remove("abierta");
+      }
+    });
   }
-
-  $("listaTrabajos").addEventListener("pointerdown", function(ev){
-    if (ev.target.closest && ev.target.closest("button, a, input, textarea")) return;
-    var t = tarjeta(ev.target);
-    if (!t) return;
-    arr = { el:t, x0:ev.clientX, y0:ev.clientY, dx:0, activo:false };
-    t.classList.remove("suave");
-  });
-
-  $("listaTrabajos").addEventListener("pointermove", function(ev){
-    if (!arr) return;
-    var dx = ev.clientX - arr.x0, dy = ev.clientY - arr.y0;
-    if (!arr.activo){
-      if (Math.abs(dy) > Math.abs(dx)) { arr = null; return; }   // está scrolleando
-      if (Math.abs(dx) < 12) return;
-      arr.activo = true;
-      cerrarTodas(arr.el);
-    }
-    arr.dx = Math.max(-96, Math.min(0, dx));
-    arr.el.style.transform = "translateX(" + arr.dx + "px)";
-    if (arr.el.parentNode) arr.el.parentNode.classList.toggle("abierta", arr.dx < -8);
-  });
 
   function soltar(){
     if (!arr) return;
@@ -1190,9 +1831,37 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     if (el.parentNode) el.parentNode.classList.toggle("abierta", abierto);
     arr = null;
   }
-  $("listaTrabajos").addEventListener("pointerup", soltar);
-  $("listaTrabajos").addEventListener("pointercancel", soltar);
-  $("listaTrabajos").addEventListener("pointerleave", soltar);
+
+  LISTAS.forEach(function(nombre){
+    var cont = $(nombre);
+
+    cont.addEventListener("pointerdown", function(ev){
+      if (ev.target.closest && ev.target.closest("button, a, input, textarea")) return;
+      var t = tarjeta(ev.target);
+      if (!t || !t.parentNode || !t.parentNode.classList.contains("fila-desliz")) return;
+      arr = { el:t, x0:ev.clientX, y0:ev.clientY, dx:0, activo:false };
+      t.classList.remove("suave");
+    });
+
+    cont.addEventListener("pointermove", function(ev){
+      if (!arr) return;
+      var dx = ev.clientX - arr.x0, dy = ev.clientY - arr.y0;
+      if (!arr.activo){
+        if (Math.abs(dy) > Math.abs(dx)) { arr = null; return; }   // está scrolleando
+        if (Math.abs(dx) < 12) return;
+        arr.activo = true;
+        cerrarTodas(arr.el);
+      }
+      arr.dx = Math.max(-96, Math.min(0, dx));
+      arr.el.style.transform = "translateX(" + arr.dx + "px)";
+      if (arr.el.parentNode) arr.el.parentNode.classList.toggle("abierta", arr.dx < -8);
+    });
+
+    cont.addEventListener("pointerup", soltar);
+    cont.addEventListener("pointercancel", soltar);
+    cont.addEventListener("pointerleave", soltar);
+  });
+
 
   function borrarCarga(id){
     for (var i=0;i<datos.length;i++){
@@ -1200,6 +1869,7 @@ nav.tabs .cuenta{font-family:var(--font-mono);font-size:11px;background:var(--ma
     }
     guardar(K_CACHE, datos);
     pintarTrabajos(); pintarCuentas();
+    if (!$("pantallaLimpieza").hidden) pintarLimpieza();
     aviso("Carga borrada");
     var payload = { accion:"borrar", id:id };
     mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
