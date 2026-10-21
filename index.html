@@ -223,6 +223,13 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
 .detalle .foto-grande{width:100%;max-height:260px;object-fit:cover;border-radius:10px;border:1px solid var(--line);
   background:var(--surface-2);display:block}
 .detalle .pie{font-size:13.5px;color:var(--fg-soft);margin-top:7px}
+/* el antes y el después, uno al lado del otro */
+.antes-despues{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.antes-despues a{display:block;min-width:0}
+.antes-despues img{width:100%;height:150px;object-fit:cover;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface-2);display:block}
+.antes-despues span{display:block;font-size:11px;color:var(--fg-soft);text-transform:uppercase;
+  letter-spacing:.06em;margin-top:4px;text-align:center}
 .detalle h3{font-family:var(--font-display);font-size:14px;letter-spacing:.09em;text-transform:uppercase;
   color:var(--fg-soft);margin:16px 0 0;font-weight:600}
 .trab{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
@@ -366,17 +373,35 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       <div class="card" id="cajaHoy"></div>
 
       <div class="card">
-        <div class="campo" style="margin:0">
-          <label for="potreroM">Marcar una pileta para limpiar</label>
+        <div class="campo">
+          <label>Encargar un trabajo</label>
+          <div class="tipos" id="tiposMarca">
+            <button type="button" class="tipo" data-tm="A LIMPIAR" style="--c:var(--ok)" aria-pressed="true">Limpiar la pileta<em>lavar el bebedero</em></button>
+            <button type="button" class="tipo" data-tm="A PLANTAS" style="--c:var(--s2)" aria-pressed="false">Cambiar las plantas<em>están feas o taparon todo</em></button>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="potreroM">Potrero</label>
           <input type="text" id="potreroM" list="potreros" placeholder="Ej: A22">
         </div>
-        <button class="chico fuerte" type="button" id="btnMarcar" style="margin-top:10px;width:100%">Agregar a la lista</button>
+        <div class="campo" style="margin:0">
+          <label>Foto de cómo está (si estás ahí)</label>
+          <div class="foto-caja">
+            <img class="miniatura" id="miniMarca" alt="" hidden>
+            <div class="txt" id="fotoTxtM">La pileta sucia, o las plantas feas o que ya taparon todo</div>
+          </div>
+          <div class="botones-foto">
+            <button type="button" class="chico" id="btnCamaraM">Cámara</button>
+            <button type="button" class="chico" id="btnGaleriaM">Galería</button>
+          </div>
+        </div>
+        <button class="chico fuerte" type="button" id="btnMarcar" style="margin-top:14px;width:100%">Agregar a la lista</button>
       </div>
 
-      <h2 class="sec">Piletas que faltan limpiar</h2>
+      <h2 class="sec">Trabajos que faltan hacer</h2>
       <ul class="lista" id="listaFalta"></ul>
-      <p class="pista-desliz" id="pistaDeslizF" hidden>Para borrar una marca equivocada, arrastrala hacia la izquierda.</p>
-      <div class="vacio" id="vacioFalta" hidden>No hay ninguna pileta marcada para limpiar.</div>
+      <p class="pista-desliz" id="pistaDeslizF" hidden>Para borrar un encargo equivocado, arrastralo hacia la izquierda.</p>
+      <div class="vacio" id="vacioFalta" hidden>No hay ningún trabajo encargado.</div>
     </div>
 
     <!-- ---- cargar un trabajo hecho ---- -->
@@ -487,11 +512,14 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   var TIPOS = ["CAÑO ROTO","BAJA PRESIÓN","PILETA SECA","BOYA ROTA"];
   // Los trabajos de bebedero viajan por el mismo camino que las bajas, pero con estas
   // categorías. Así no hay que tocar nada de la planilla ni del script.
-  //   A LIMPIAR = pileta marcada para limpiar. Si figura RESUELTO, ya la limpiaron.
-  //   LIMPIEZA  = limpieza hecha sin que nadie la hubiera marcado antes.
-  //   PLANTAS   = cambio de las plantas del bebedero.
-  var CAT_PEND = "A LIMPIAR", CAT_LIMP = "LIMPIEZA", CAT_PLANTAS = "PLANTAS";
-  var CATS_BEBEDERO = [CAT_PEND, CAT_LIMP, CAT_PLANTAS];
+  //   A LIMPIAR = encargo de limpieza. Si figura RESUELTO, ya la limpiaron.
+  //   A PLANTAS = encargo de cambio de plantas. Si figura RESUELTO, ya las cambiaron.
+  //   LIMPIEZA  = limpieza hecha sin que nadie la hubiera encargado antes.
+  //   PLANTAS   = cambio de plantas hecho sin encargo previo.
+  var CAT_PEND = "A LIMPIAR", CAT_PENDP = "A PLANTAS";
+  var CAT_LIMP = "LIMPIEZA", CAT_PLANTAS = "PLANTAS";
+  var CATS_PEND = [CAT_PEND, CAT_PENDP];
+  var CATS_BEBEDERO = [CAT_PEND, CAT_PENDP, CAT_LIMP, CAT_PLANTAS];
   var DIAS_ALERTA = 30;   // pasados estos días sin limpiar, la pileta se muestra en rojo
   var VAR_COLOR = {"CAÑO ROTO":"--s1","BAJA PRESIÓN":"--s2","PILETA SECA":"--s3","BOYA ROTA":"--s4"};
   // además del color, cada tipo tiene su forma en el mapa
@@ -500,9 +528,9 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   var CENTRO = [-23.314378, -56.699159];
 
   var datos = [], autor = "", ubic = null, tipoSel = "";
-  var fotoCarga = "", fotoLimp = "", fotosArreglo = {}, destinoFoto = "carga";
+  var fotoCarga = "", fotoLimp = "", fotoMarca = "", fotosArreglo = {}, destinoFoto = "carga";
   var verEstado = "PENDIENTE", verLimp = "FALTA", enLinea = true, sinEnviar = 0;
-  var tipoLimpSel = "LIMPIEZA", abiertoPot = "";
+  var tipoLimpSel = "LIMPIEZA", tipoMarcaSel = "A LIMPIAR", abiertoPot = "";
   var mapa = null, marcador = null, capaSat = null, capaCalle = null, puntoTmp = null, viendoSat = true;
 
   function $(id){ return document.getElementById(id); }
@@ -787,24 +815,33 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   function esBebedero(f){ return CATS_BEBEDERO.indexOf(f.CATEGORIA) !== -1; }
   function aguas(){ return vivas().filter(function(f){ return !esBebedero(f); }); }
 
-  // Piletas marcadas que todavía nadie limpió.
+  function esEncargo(f){ return CATS_PEND.indexOf(f.CATEGORIA) !== -1; }
+  function esDePlantas(f){ return f.CATEGORIA === CAT_PLANTAS || f.CATEGORIA === CAT_PENDP; }
+
+  // Trabajos encargados que todavía nadie hizo.
   function pendientesLimp(){
-    return vivas().filter(function(f){ return f.CATEGORIA === CAT_PEND && f.ESTADO !== "RESUELTO"; });
+    return vivas().filter(function(f){ return esEncargo(f) && f.ESTADO !== "RESUELTO"; });
   }
-  // Limpiezas efectivamente hechas, vengan de una marca previa o cargadas directo.
+  // Hechos de verdad, vengan de un encargo previo o cargados directo.
   function limpiezasHechas(){
     return vivas().filter(function(f){
       return f.CATEGORIA === CAT_LIMP || (f.CATEGORIA === CAT_PEND && f.ESTADO === "RESUELTO");
     });
   }
-  function cambiosPlantas(){ return vivas().filter(function(f){ return f.CATEGORIA === CAT_PLANTAS; }); }
+  function cambiosPlantas(){
+    return vivas().filter(function(f){
+      return f.CATEGORIA === CAT_PLANTAS || (f.CATEGORIA === CAT_PENDP && f.ESTADO === "RESUELTO");
+    });
+  }
 
-  // Una limpieza que vino de una marca previa guarda la fecha y la foto en los campos
-  // del arreglo; una cargada directo, en los campos normales. Esto empareja las dos.
-  function fechaHecho(f){ return f.CATEGORIA === CAT_PEND ? f.FECHA_ARREGLO : f.FECHA; }
-  function quienHecho(f){ return (f.CATEGORIA === CAT_PEND ? f.RESUELTO_POR : f.CARGADO_POR) || "—"; }
-  function fotoHecho(f){ return f.CATEGORIA === CAT_PEND ? f.FOTO_ARREGLO : f.FOTO; }
-  function notaHecho(f){ return (f.CATEGORIA === CAT_PEND ? f.NOTA_ARREGLO : f.OBSERVACION) || ""; }
+  // Un trabajo que vino de un encargo guarda la fecha y la foto en los campos del
+  // arreglo; uno cargado directo, en los campos normales. Esto empareja los dos.
+  function fechaHecho(f){ return esEncargo(f) ? f.FECHA_ARREGLO : f.FECHA; }
+  function quienHecho(f){ return (esEncargo(f) ? f.RESUELTO_POR : f.CARGADO_POR) || "—"; }
+  function fotoHecho(f){ return esEncargo(f) ? f.FOTO_ARREGLO : f.FOTO; }
+  // solo los encargos pueden tener foto del antes: la saca el que encarga el trabajo
+  function fotoAntes(f){ return esEncargo(f) ? (f.FOTO||"") : ""; }
+  function notaHecho(f){ return (esEncargo(f) ? f.NOTA_ARREGLO : f.OBSERVACION) || ""; }
 
   function pintarCuentas(){
     var n = aguas().filter(function(f){ return f.ESTADO!=="RESUELTO"; }).length;
@@ -896,7 +933,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
 
   // Una tarjeta de trabajo hecho, igual para una limpieza que para un cambio de plantas.
   function tarjetaHecho(f, conBorrar){
-    var planta = f.CATEGORIA === CAT_PLANTAS;
+    var planta = esDePlantas(f);
     var color  = planta ? "--s2" : "--ok";
     var nota   = notaHecho(f), foto = fotoHecho(f);
     var cuerpo =
@@ -930,7 +967,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   function pintarHoy(){
     var hoy = hoyISO();
     var hechos = trabajosOrdenados().filter(function(f){ return fechaHecho(f) === hoy; });
-    var limp = hechos.filter(function(f){ return f.CATEGORIA !== CAT_PLANTAS; }).length;
+    var limp = hechos.filter(function(f){ return !esDePlantas(f); }).length;
     var pla  = hechos.length - limp;
 
     var h = '<h2 class="sec" style="margin:0">Lo de hoy</h2>';
@@ -956,30 +993,39 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     var hoy = hoyISO(), html = "";
     for (var i=0;i<filas.length;i++){
       var f = filas[i], d = diasEntre(f.FECHA, hoy);
-      var espera = d === null ? "" : d <= 0 ? "Marcada hoy" : d === 1 ? "Esperando 1 día" : "Esperando "+d+" días";
+      var planta = f.CATEGORIA === CAT_PENDP;
+      var espera = d === null ? "" : d <= 0 ? "encargada hoy" : d === 1 ? "esperando 1 día" : "esperando "+d+" días";
+      var que = planta ? "Cambiar las plantas" : "Limpiar la pileta";
       html += '<li class="fila-desliz">'
-            + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta marca">'
+            + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar este encargo">'
             +   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
             +   'Borrar'
             + '</button>'
-            + '<div class="item" data-id="'+esc(f.ID)+'" style="--c:var(--alerta)">'
+            + '<div class="item" data-id="'+esc(f.ID)+'" style="--c:var('+(planta?"--s2":"--alerta")+')">'
             +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
             +     '<time>'+esc(corta(f.FECHA))+'</time></div>'
-            +   '<div class="tip">'+esc(espera)+'</div>'
+            +   '<div class="tip">'+que+' · '+esc(espera)+'</div>'
             +   (f.OBSERVACION ? '<div class="obs">'+esc(f.OBSERVACION)+'</div>' : '')
-            +   '<div class="obs">Marcada por '+esc(f.CARGADO_POR||"—")+'</div>'
-            +   '<div class="acc"><button class="chico fuerte" type="button" data-limp="'+esc(f.ID)+'">Ya la limpié</button></div>'
+            +   '<div class="obs">Encargada por '+esc(f.CARGADO_POR||"—")+'</div>'
+            +   (f.FOTO ? '<div class="fotos"><a href="'+esc(f.FOTO)+'" target="_blank" rel="noopener">'
+                        + '<img src="'+esc(f.FOTO)+'" alt="Cómo está" loading="lazy">'
+                        + '<span>Así está</span></a></div>' : '')
+            +   '<div class="acc"><button class="chico fuerte" type="button" data-limp="'+esc(f.ID)+'">'
+            +     (planta ? "Ya las cambié" : "Ya la limpié") + '</button></div>'
             +   '<div class="panel-fix" id="fixL-'+esc(f.ID)+'" hidden>'
             +     '<div class="foto-caja">'
             +       '<img class="miniatura" id="minilimp-'+esc(f.ID)+'" alt="" hidden>'
-            +       '<div class="txt" id="txtlimp-'+esc(f.ID)+'">Foto obligatoria de la pileta limpia</div>'
+            +       '<div class="txt" id="txtlimp-'+esc(f.ID)+'">'
+            +         (planta ? "Foto obligatoria de las plantas cambiadas" : "Foto obligatoria de la pileta limpia")
+            +       '</div>'
             +     '</div>'
             +     '<div class="botones-foto">'
             +       '<button class="chico" type="button" data-camL="'+esc(f.ID)+'">Cámara</button>'
             +       '<button class="chico" type="button" data-galL="'+esc(f.ID)+'">Galería</button>'
             +     '</div>'
             +     '<input type="text" placeholder="Qué se hizo (opcional)" id="notaL-'+esc(f.ID)+'">'
-            +     '<button class="chico fuerte" type="button" data-confL="'+esc(f.ID)+'">Confirmar limpieza</button>'
+            +     '<button class="chico fuerte" type="button" data-confL="'+esc(f.ID)+'">'
+            +       (planta ? "Confirmar cambio" : "Confirmar limpieza") + '</button>'
             +   '</div>'
             + '</div></li>';
     }
@@ -999,9 +1045,11 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       if (!ultima[p] || fe > fechaHecho(ultima[p])) ultima[p] = f;
     });
 
-    // una pileta ya marcada no se vuelve a marcar
+    // el botón de esta vista encarga limpieza, así que solo miramos esos encargos
     var yaMarcados = {};
-    pendientesLimp().forEach(function(f){ yaMarcados[String(f.POTRERO||"").toUpperCase()] = true; });
+    pendientesLimp().forEach(function(f){
+      if (f.CATEGORIA === CAT_PEND) yaMarcados[String(f.POTRERO||"").toUpperCase()] = true;
+    });
 
     // los que solo tuvieron cambio de plantas también se muestran, al final
     var conAlgo = {};
@@ -1018,6 +1066,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
                  quien: u ? quienHecho(u) : "",
                  dias:  u ? diasEntre(fechaHecho(u), hoy) : null,
                  foto:  u ? fotoHecho(u) : "",
+                 antes: u ? fotoAntes(u) : "",
                  nota:  u ? notaHecho(u) : "",
                  marcado: !!yaMarcados[p] });
     });
@@ -1042,7 +1091,19 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   function detalleDe(x){
     var h = '<div class="detalle">';
 
-    if (x.foto){
+    if (x.foto && x.antes){
+      // las dos juntas: así estaba y así quedó
+      h += '<div class="antes-despues">'
+         +   '<a href="'+esc(x.antes)+'" target="_blank" rel="noopener">'
+         +     '<img src="'+esc(x.antes)+'" alt="Antes de limpiar '+esc(x.pot)+'" loading="lazy">'
+         +     '<span>Así estaba</span></a>'
+         +   '<a href="'+esc(x.foto)+'" target="_blank" rel="noopener">'
+         +     '<img src="'+esc(x.foto)+'" alt="Después de limpiar '+esc(x.pot)+'" loading="lazy">'
+         +     '<span>Así quedó</span></a>'
+         + '</div>'
+         + '<div class="pie">Limpiada el '+esc(corta(x.fecha))+' por '+esc(x.quien)+'.'
+         +   (x.nota ? ' '+esc(x.nota) : '') + '</div>';
+    } else if (x.foto){
       h += '<a href="'+esc(x.foto)+'" target="_blank" rel="noopener">'
          +   '<img class="foto-grande" src="'+esc(x.foto)+'" alt="Última limpieza de '+esc(x.pot)+'" loading="lazy">'
          + '</a>'
@@ -1063,10 +1124,14 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     if (hist.length){
       h += '<h3>Todo lo que se le hizo</h3>';
       for (var i=0;i<hist.length;i++){
-        var f = hist[i], planta = f.CATEGORIA === CAT_PLANTAS, fo = fotoHecho(f), no = notaHecho(f);
+        var f = hist[i], planta = esDePlantas(f), fo = fotoHecho(f), no = notaHecho(f);
+        var an = fotoAntes(f), minis = "";
+        if (an) minis += '<a href="'+esc(an)+'" target="_blank" rel="noopener">'
+                       + '<img src="'+esc(an)+'" alt="Antes" loading="lazy"></a>';
+        if (fo) minis += '<a href="'+esc(fo)+'" target="_blank" rel="noopener">'
+                       + '<img src="'+esc(fo)+'" alt="Después" loading="lazy"></a>';
         h += '<div class="trab">'
-           +   (fo ? '<a href="'+esc(fo)+'" target="_blank" rel="noopener"><img src="'+esc(fo)+'" alt="Foto" loading="lazy"></a>'
-                   : '<span class="sinfoto"></span>')
+           +   (minis || '<span class="sinfoto"></span>')
            +   '<span class="txt" style="--c2:var('+(planta?"--s2":"--ok")+')">'
            +     '<b>'+(planta ? "Cambio de plantas" : "Limpieza")+'</b>'
            +     '<span>'+esc(corta(fechaHecho(f)))+' · '+esc(quienHecho(f))+(no ? ' · '+esc(no) : '')+'</span>'
@@ -1204,6 +1269,16 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       return;
     }
     cont.style.display = "";
+    // Cada vez que se repinta el informe se arma un div nuevo. Si el mapa quedó colgado
+    // del div viejo, hay que tirarlo y rehacerlo: si no, el recuadro aparece vacío.
+    if (mapaInf){
+      var viejo = null;
+      try { viejo = mapaInf.getContainer(); } catch(e){ viejo = null; }
+      if (viejo !== cont){
+        try { mapaInf.remove(); } catch(e){}
+        mapaInf = null; capaMarcas = null;
+      }
+    }
     if (!mapaInf){
       mapaInf = L.map("mapaInforme", { scrollWheelZoom:false }).setView(CENTRO, 12);
       L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -1240,7 +1315,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   // En el informe los bebederos van aparte, al final, para no mezclarlos con las bajas de agua.
   function bloqueLimpiezaInforme(){
     var trab = trabajosDelPeriodo();
-    var lim  = trab.filter(function(f){ return f.CATEGORIA !== CAT_PLANTAS; });
+    var lim  = trab.filter(function(f){ return !esDePlantas(f); });
     var pla  = trab.length - lim.length;
     var cuenta = {};
     lim.forEach(function(f){ var p=String(f.POTRERO||"—").toUpperCase(); cuenta[p]=(cuenta[p]||0)+1; });
@@ -1252,12 +1327,14 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
 
     var hPend = "";
     if (pend.length){
-      hPend = '<h2 class="sec" style="margin:18px 0 0">Piletas que siguen sin limpiarse</h2><ul class="lista">';
+      hPend = '<h2 class="sec" style="margin:18px 0 0">Encargos que siguen sin hacerse</h2><ul class="lista">';
       for (var i=0;i<pend.length;i++){
         var d = diasEntre(pend[i].FECHA, hoy);
-        hPend += '<li class="item" style="--c:var(--alerta)">'
+        var esP = pend[i].CATEGORIA === CAT_PENDP;
+        hPend += '<li class="item" style="--c:var('+(esP?"--s2":"--alerta")+')">'
                +   '<div class="fila1"><span class="pot">'+esc(pend[i].POTRERO)+'</span>'
                +     '<time>'+(d!==null ? d+" días esperando" : esc(corta(pend[i].FECHA)))+'</time></div>'
+               +   '<div class="tip">'+(esP ? "Cambiar las plantas" : "Limpiar la pileta")+'</div>'
                + '</li>';
       }
       hPend += '</ul>';
@@ -1278,7 +1355,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
          +     '<div class="tile"><b>'+lim.length+'</b><span>Limpiezas en el período</span></div>'
          +     '<div class="tile"><b>'+pla+'</b><span>Cambios de plantas</span></div>'
          +     '<div class="tile"><b>'+Object.keys(cuenta).length+'</b><span>Potreros limpiados</span></div>'
-         +     '<div class="tile"><b>'+pend.length+'</b><span>Marcadas sin limpiar</span></div>'
+         +     '<div class="tile"><b>'+pend.length+'</b><span>Encargos sin hacer</span></div>'
          +   '</div>'
          +   hPend + hOlv
          + '</div>';
@@ -1388,16 +1465,17 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     }
 
     var trab = trabajosDelPeriodo();
-    var lim = trab.filter(function(f){ return f.CATEGORIA !== CAT_PLANTAS; }).length;
+    var lim = trab.filter(function(f){ return !esDePlantas(f); }).length;
     t += "\nBEBEDEROS\nLimpiezas: "+lim+"\nCambios de plantas: "+(trab.length-lim)+"\n";
 
     var pendL = pendientesLimp();
     if (pendL.length){
-      t += "\nMARCADAS Y SIN LIMPIAR:\n";
+      t += "\nENCARGOS SIN HACER:\n";
       pendL.slice().sort(function(a,b){ return String(a.FECHA).localeCompare(String(b.FECHA)); })
         .forEach(function(f){
           var d = diasEntre(f.FECHA, hoyISO());
-          t += "- "+f.POTRERO+(d!==null ? " ("+d+" días)" : "")+"\n";
+          t += "- "+f.POTRERO+(f.CATEGORIA === CAT_PENDP ? " (plantas)" : " (limpieza)")
+             +  (d!==null ? " - "+d+" días" : "")+"\n";
         });
     }
     var olv = estadoPorPotrero().con.filter(function(x){ return x.dias !== null; }).slice(0,5);
@@ -1511,6 +1589,8 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   $("btnGaleria").addEventListener("click", function(){ pedirFoto("carga", false); });
   $("btnCamaraL").addEventListener("click", function(){ pedirFoto("limpieza", true); });
   $("btnGaleriaL").addEventListener("click", function(){ pedirFoto("limpieza", false); });
+  $("btnCamaraM").addEventListener("click", function(){ pedirFoto("marca", true); });
+  $("btnGaleriaM").addEventListener("click", function(){ pedirFoto("marca", false); });
 
   function recibirFoto(){
     var archivo = this.files && this.files[0];
@@ -1527,6 +1607,10 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
         fotoLimp = b64;
         $("miniLimp").src = b64; $("miniLimp").hidden = false;
         $("fotoTxtL").textContent = "Foto lista";
+      } else if (destino === "marca"){
+        fotoMarca = b64;
+        $("miniMarca").src = b64; $("miniMarca").hidden = false;
+        $("fotoTxtM").textContent = "Foto lista";
       } else {
         fotosArreglo[destino] = b64;
         // la fila puede estar en la lista de pendientes de agua o en la de limpieza
@@ -1583,10 +1667,11 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     var obs = $("obsL").value.trim();
     var payload, i;
 
-    // Si esa pileta ya estaba marcada para limpiar, esta carga cierra esa marca
+    // Si ese trabajo ya estaba encargado para esa pileta, esta carga cierra el encargo
     // en vez de abrir una fila nueva. Así no queda figurando como pendiente.
-    var marcada = planta ? null : pendientesLimp().filter(function(f){
-      return String(f.POTRERO).toUpperCase() === pot;
+    var tipoEncargo = planta ? CAT_PENDP : CAT_PEND;
+    var marcada = pendientesLimp().filter(function(f){
+      return String(f.POTRERO).toUpperCase() === pot && f.CATEGORIA === tipoEncargo;
     })[0];
 
     if (marcada){
@@ -1645,35 +1730,57 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   });
 
   // ---------- marcar una pileta para limpiar ----------
-  function marcarPileta(pot){
+  function limpiarFormM(){
+    $("potreroM").value = ""; fotoMarca = "";
+    $("fotoTxtM").textContent = "La pileta sucia, o las plantas feas o que ya taparon todo";
+    $("miniMarca").hidden = true; $("miniMarca").removeAttribute("src");
+  }
+
+  function marcarPileta(pot, tipo){
     pot = String(pot||"").trim().toUpperCase();
     if (!pot) return;
-    var yaEsta = pendientesLimp().some(function(f){ return String(f.POTRERO).toUpperCase() === pot; });
-    if (yaEsta){ aviso(pot + " ya está en la lista", true); return; }
+    tipo = tipo || CAT_PEND;
+    var yaEsta = pendientesLimp().some(function(f){
+      return String(f.POTRERO).toUpperCase() === pot && f.CATEGORIA === tipo;
+    });
+    if (yaEsta){
+      aviso(pot + (tipo === CAT_PENDP ? " ya está encargada para plantas" : " ya está en la lista"), true);
+      return;
+    }
 
     var id = String(Date.now())+String(Math.floor(Math.random()*1000));
     var fecha = hoyISO();
+    // la foto de cómo está va al lugar del "antes"; la del trabajo hecho irá al del "después"
     var payload = { accion:"nueva", fila:{
-      id:tal(id), fecha:tal(fecha), potrero:pot, categoria:CAT_PEND,
-      obs:"", lat:"", lon:"", autor:autor, foto:""
+      id:tal(id), fecha:tal(fecha), potrero:pot, categoria:tipo,
+      obs:"", lat:"", lon:"", autor:autor, foto:fotoMarca
     }};
 
-    datos.push({ ID:id, FECHA:fecha, POTRERO:pot, CATEGORIA:CAT_PEND, OBSERVACION:"",
+    datos.push({ ID:id, FECHA:fecha, POTRERO:pot, CATEGORIA:tipo, OBSERVACION:"",
                  LAT:"", LON:"", CARGADO_POR:autor, ESTADO:"PENDIENTE",
                  RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"", FOTO:"", FOTO_ARREGLO:"" });
     guardar(K_CACHE, datos);
-    $("potreroM").value = "";
+    limpiarFormM();
     pintarLimpieza(); pintarCuentas();
-    aviso(pot + " agregada a la lista");
+    aviso(pot + (tipo === CAT_PENDP ? ": plantas encargadas" : ": limpieza encargada"));
 
     mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
       .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
   }
 
+  $("tiposMarca").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest(".tipo") : null;
+    if (!b) return;
+    var ts = this.querySelectorAll(".tipo");
+    for (var i=0;i<ts.length;i++) ts[i].setAttribute("aria-pressed","false");
+    b.setAttribute("aria-pressed","true");
+    tipoMarcaSel = b.getAttribute("data-tm");
+  });
+
   $("btnMarcar").addEventListener("click", function(){
     var pot = $("potreroM").value.trim();
     if (!pot){ $("potreroM").focus(); return; }
-    marcarPileta(pot);
+    marcarPileta(pot, tipoMarcaSel);
   });
   $("potreroM").addEventListener("keydown", function(ev){
     if (ev.key === "Enter"){ ev.preventDefault(); $("btnMarcar").click(); }
@@ -1739,7 +1846,12 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     var conf = ev.target.closest ? ev.target.closest("button[data-confL]") : null;
     if (conf){
       var id = conf.getAttribute("data-confL");
-      if (!fotosArreglo[id]){ aviso("Falta la foto de la pileta limpia", true); return; }
+      var filaP = datos.filter(function(x){ return String(x.ID) === String(id); })[0];
+      var esPlanta = filaP && filaP.CATEGORIA === CAT_PENDP;
+      if (!fotosArreglo[id]){
+        aviso(esPlanta ? "Falta la foto de las plantas cambiadas" : "Falta la foto de la pileta limpia", true);
+        return;
+      }
       var nota = $("notaL-"+id) ? $("notaL-"+id).value.trim() : "";
       var payload = { accion:"resolver", id:id, resueltoPor:autor, notaArreglo:nota,
                       fechaArreglo:tal(hoyISO()), foto:fotosArreglo[id] };
@@ -1752,7 +1864,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       delete fotosArreglo[id];
       guardar(K_CACHE, datos);
       pintarLimpieza(); pintarCuentas();
-      aviso("Limpieza registrada");
+      aviso(esPlanta ? "Cambio de plantas registrado" : "Limpieza registrada");
       mandar(payload).then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
         .catch(function(){ encolar(payload); marcarEstado(false, "Esperando señal"); });
     }
