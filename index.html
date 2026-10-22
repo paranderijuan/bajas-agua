@@ -134,15 +134,24 @@ button.chico.apagado{opacity:.45;pointer-events:none}
 
 ul.lista{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
 li.fila-desliz{position:relative;overflow:hidden;border-radius:12px;background:transparent}
-li.fila-desliz .zona-borrar{position:absolute;top:0;right:0;bottom:0;width:96px;border:none;
-  background:var(--malo);color:#fff;border-radius:0 12px 12px 0;cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  font-family:var(--font-display);font-size:15px;letter-spacing:.08em;text-transform:uppercase;
+/* al deslizar aparecen los botones, uno arriba del otro */
+li.fila-desliz .zona-acciones{position:absolute;top:0;right:0;bottom:0;width:96px;
+  display:flex;flex-direction:column;border-radius:0 12px 12px 0;overflow:hidden;
   opacity:0;transition:opacity .12s ease}
-li.fila-desliz.abierta .zona-borrar{opacity:1}
-li.fila-desliz .zona-borrar svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+li.fila-desliz.abierta .zona-acciones{opacity:1}
+.zona-btn{flex:1;min-height:0;border:none;color:#fff;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-family:var(--font-display);font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.zona-btn + .zona-btn{border-top:1px solid rgba(255,255,255,.35)}
+.zona-btn.editar{background:var(--alerta)}
+.zona-btn.borrar{background:var(--malo)}
+.zona-btn svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+.panel-editar{margin-top:11px;border-top:1px dashed var(--line);padding-top:11px;display:flex;flex-direction:column;gap:9px}
+.panel-editar .aviso-foto{font-size:12.5px;color:var(--alerta)}
 .item{position:relative;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c,var(--line));
-  border-radius:12px;padding:12px 13px;touch-action:pan-y;will-change:transform}
+  border-radius:12px;padding:12px 13px;touch-action:pan-y;will-change:transform;
+  -webkit-user-select:none;user-select:none}   /* al arrastrar no se pinta el texto */
+.item input,.item textarea{-webkit-user-select:text;user-select:text}
 .item.suave{transition:transform .18s ease}
 .pista-desliz{font-size:12px;color:var(--fg-soft);margin-top:10px;text-align:center}
 .marca-mapa{border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
@@ -502,7 +511,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   var API = "https://script.google.com/macros/s/AKfycbzMwrca1wiIFyp0PRNpN4ZbuehHwIPbkg9l7dQtZ58WbBex6IcPC4otlOBu4cuHT0S1/exec";
 
   var POTREROS = ["A06","A07","A13","A15A","A15B","A15C","A17","A18A","A18B","A18C","A20A","A20B","A20C",
-    "PIQUETE CABALLO","A21","A22","A23","A24","A25","A28","A30","A31","A32","A33","A35","A36","A37",
+    "PIQUETE CABALLO","RETIRO","A21","A22","A23","A24","A25","A28","A30","A31","A32","A33","A35","A36","A37",
     "A38","A39","A40","A41","A42","A43","A44","A45","A46","A47","A48","A49","A50","A51","A52","A53",
     "A54","A55","A56","A57",
     "C01A","C01B","C01C","C01D","C02A","C02B","C02C","C02D","C03A","C03B","C03C","C03D",
@@ -898,10 +907,12 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       }
 
       html += '<li class="fila-desliz">'
-            + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta carga">'
-            +   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
-            +   'Borrar'
-            + '</button>'
+            + '<div class="zona-acciones">'
+            +   '<button class="zona-btn borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta carga">'
+            +     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
+            +     'Borrar'
+            +   '</button>'
+            + '</div>'
             + '<div class="item'+(f.ESTADO==="RESUELTO"?" resuelta":"")+'" data-id="'+esc(f.ID)+'" style="--c:var('+cv+')">'
             +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
             +     (f.ESTADO==="RESUELTO" ? '<span class="chip">Arreglado</span>' : '')
@@ -949,10 +960,12 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       + '</div>';
     if (!conBorrar) return '<li>'+cuerpo+'</li>';
     return '<li class="fila-desliz">'
-         + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta carga">'
-         +   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
-         +   'Borrar'
-         + '</button>' + cuerpo + '</li>';
+         + '<div class="zona-acciones">'
+         +   '<button class="zona-btn borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar esta carga">'
+         +     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
+         +     'Borrar'
+         +   '</button>'
+         + '</div>' + cuerpo + '</li>';
   }
 
   function trabajosOrdenados(){
@@ -997,10 +1010,16 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       var espera = d === null ? "" : d <= 0 ? "encargada hoy" : d === 1 ? "esperando 1 día" : "esperando "+d+" días";
       var que = planta ? "Cambiar las plantas" : "Limpiar la pileta";
       html += '<li class="fila-desliz">'
-            + '<button class="zona-borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar este encargo">'
-            +   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
-            +   'Borrar'
-            + '</button>'
+            + '<div class="zona-acciones">'
+            +   '<button class="zona-btn editar" type="button" data-editar="'+esc(f.ID)+'" aria-label="Corregir este encargo">'
+            +     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z"/></svg>'
+            +     'Editar'
+            +   '</button>'
+            +   '<button class="zona-btn borrar" type="button" data-borrar="'+esc(f.ID)+'" aria-label="Borrar este encargo">'
+            +     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>'
+            +     'Borrar'
+            +   '</button>'
+            + '</div>'
             + '<div class="item" data-id="'+esc(f.ID)+'" style="--c:var('+(planta?"--s2":"--alerta")+')">'
             +   '<div class="fila1"><span class="pot">'+esc(f.POTRERO)+'</span>'
             +     '<time>'+esc(corta(f.FECHA))+'</time></div>'
@@ -1027,9 +1046,53 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
             +     '<button class="chico fuerte" type="button" data-confL="'+esc(f.ID)+'">'
             +       (planta ? "Confirmar cambio" : "Confirmar limpieza") + '</button>'
             +   '</div>'
+            +   '<div class="panel-editar" id="edL-'+esc(f.ID)+'" hidden>'
+            +     '<label for="edPot-'+esc(f.ID)+'">Potrero</label>'
+            +     '<input type="text" id="edPot-'+esc(f.ID)+'" list="potreros" value="'+esc(f.POTRERO)+'">'
+            +     '<label for="edFecha-'+esc(f.ID)+'">Fecha</label>'
+            +     '<input type="date" id="edFecha-'+esc(f.ID)+'" value="'+esc(f.FECHA)+'">'
+            +     '<label for="edObs-'+esc(f.ID)+'">Observación</label>'
+            +     '<input type="text" id="edObs-'+esc(f.ID)+'" value="'+esc(f.OBSERVACION||"")+'" placeholder="Si hace falta">'
+            +     (f.FOTO ? '<div class="aviso-foto">Al guardar se pierde la foto de cómo está: hay que sacarla de nuevo.</div>' : '')
+            +     '<button class="chico fuerte" type="button" data-guardaed="'+esc(f.ID)+'">Guardar cambios</button>'
+            +   '</div>'
             + '</div></li>';
     }
+    // Si el repintado llega mientras alguien está con un panel abierto, se le cerraba
+    // y perdía lo escrito. Guardamos qué tenía abierto y lo devolvemos tal cual.
+    var abiertos = {};
+    var pan = $("listaFalta").querySelectorAll(".panel-editar, .panel-fix");
+    for (var k=0;k<pan.length;k++){
+      if (pan[k].hidden) continue;
+      var pid = pan[k].id.replace("edL-","").replace("fixL-","");
+      abiertos[pan[k].id] = {
+        pot:   $("edPot-"+pid)   ? $("edPot-"+pid).value   : null,
+        fecha: $("edFecha-"+pid) ? $("edFecha-"+pid).value : null,
+        obs:   $("edObs-"+pid)   ? $("edObs-"+pid).value   : null,
+        nota:  $("notaL-"+pid)   ? $("notaL-"+pid).value   : null
+      };
+    }
+
     $("listaFalta").innerHTML = html;
+
+    Object.keys(abiertos).forEach(function(pid){
+      var p = $(pid);
+      if (!p) return;
+      p.hidden = false;
+      var id = pid.replace("edL-","").replace("fixL-","");
+      var v = abiertos[pid];
+      if (v.pot   !== null && $("edPot-"+id))   $("edPot-"+id).value   = v.pot;
+      if (v.fecha !== null && $("edFecha-"+id)) $("edFecha-"+id).value = v.fecha;
+      if (v.obs   !== null && $("edObs-"+id))   $("edObs-"+id).value   = v.obs;
+      if (v.nota  !== null && $("notaL-"+id))   $("notaL-"+id).value   = v.nota;
+      // si ya había elegido la foto, mostrarla de nuevo
+      if (fotosArreglo[id] && $("minilimp-"+id)){
+        $("minilimp-"+id).src = fotosArreglo[id];
+        $("minilimp-"+id).hidden = false;
+        if ($("txtlimp-"+id)) $("txtlimp-"+id).textContent = "Foto lista";
+      }
+    });
+
     $("pistaDeslizF").hidden = filas.length === 0;
     $("vacioFalta").hidden = filas.length > 0;
   }
@@ -1827,10 +1890,62 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     pintarPorPotrero();
   });
 
+  // ---------- corregir un encargo ----------
+  // El script de la planilla no sabe corregir una fila: lo que hacemos es borrar la
+  // vieja y cargar una nueva con los datos arreglados. Por eso se pierde la foto.
+  function editarEncargo(id){
+    var f = datos.filter(function(x){ return String(x.ID) === String(id); })[0];
+    if (!f) return;
+    var pot = ($("edPot-"+id) ? $("edPot-"+id).value : "").trim().toUpperCase();
+    if (!pot){ aviso("Falta el potrero", true); return; }
+    var fecha = ($("edFecha-"+id) ? $("edFecha-"+id).value : "") || f.FECHA || hoyISO();
+    var obs = ($("edObs-"+id) ? $("edObs-"+id).value : "").trim();
+
+    if (pot === String(f.POTRERO).toUpperCase() && fecha === f.FECHA && obs === (f.OBSERVACION||"")){
+      aviso("No cambiaste nada");
+      return;
+    }
+
+    var nuevoId = String(Date.now())+String(Math.floor(Math.random()*1000));
+    var pBorrar = { accion:"borrar", id:id };
+    var pNueva  = { accion:"nueva", fila:{
+      id:tal(nuevoId), fecha:tal(fecha), potrero:pot, categoria:f.CATEGORIA,
+      obs:obs, lat:"", lon:"", autor:autor, foto:""
+    }};
+
+    for (var i=0;i<datos.length;i++){
+      if (String(datos[i].ID) === String(id)) datos[i].ESTADO = "BORRADO";
+    }
+    datos.push({ ID:nuevoId, FECHA:fecha, POTRERO:pot, CATEGORIA:f.CATEGORIA, OBSERVACION:obs,
+                 LAT:"", LON:"", CARGADO_POR:autor, ESTADO:"PENDIENTE",
+                 RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"", FOTO:"", FOTO_ARREGLO:"" });
+    guardar(K_CACHE, datos);
+    pintarLimpieza(); pintarCuentas();
+    aviso("Corregido: " + pot);
+
+    mandar(pBorrar)
+      .then(function(){ return mandar(pNueva); })
+      .then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
+      .catch(function(){
+        encolar(pBorrar).then(function(){ return encolar(pNueva); });
+        marcarEstado(false, "Esperando señal");
+      });
+  }
+
   // ---------- cerrar una pileta marcada ----------
   $("listaFalta").addEventListener("click", function(ev){
     var del = ev.target.closest ? ev.target.closest("button[data-borrar]") : null;
     if (del){ borrarCarga(del.getAttribute("data-borrar")); return; }
+
+    var ed = ev.target.closest ? ev.target.closest("button[data-editar]") : null;
+    if (ed){
+      var pe = $("edL-"+ed.getAttribute("data-editar"));
+      if (pe) pe.hidden = !pe.hidden;
+      cerrarTodas();          // vuelve la tarjeta a su lugar para que se vea el panel
+      return;
+    }
+    var gu = ev.target.closest ? ev.target.closest("button[data-guardaed]") : null;
+    if (gu){ editarEncargo(gu.getAttribute("data-guardaed")); return; }
 
     var abrir = ev.target.closest ? ev.target.closest("button[data-limp]") : null;
     if (abrir){
