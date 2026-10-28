@@ -74,7 +74,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;backgroun
 .campo{display:flex;flex-direction:column;gap:6px;margin-bottom:15px}
 .campo:last-child{margin-bottom:0}
 label{font-family:var(--font-display);font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-soft)}
-input[type=text],input[type=date],textarea{
+input[type=text],input[type=date],textarea,select{
   width:100%;min-width:0;font-family:var(--font-body);font-size:17px;color:var(--fg);
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:13px 12px;}
 textarea{resize:vertical;min-height:60px}
@@ -243,6 +243,13 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   color:var(--fg-soft);margin:16px 0 0;font-weight:600}
 .trab{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .trab:last-child{border-bottom:none}
+.trab .btns{display:flex;flex-direction:column;gap:6px;flex:none}
+.panel-editar.ed .botones{display:flex;gap:8px}
+.panel-editar.ed .botones button{flex:1}
+.panel-editar.ed .foto-ed{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-editar.ed .foto-ed img,.panel-editar.ed .foto-ed .sinfoto{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px dashed var(--line);flex:none}
+.panel-editar.ed .foto-ed .txt{flex:1;font-size:13px;color:var(--fg-soft)}
+.mapa-ed{height:260px;width:100%;border-radius:10px;overflow:hidden;background:var(--surface-2)}
 .trab img{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none;border:1px solid var(--line);
   background:var(--surface-2)}
 .trab .sinfoto{width:56px;height:56px;border-radius:8px;flex:none;border:1px dashed var(--line)}
@@ -847,10 +854,18 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
   // arreglo; uno cargado directo, en los campos normales. Esto empareja los dos.
   function fechaHecho(f){ return esEncargo(f) ? f.FECHA_ARREGLO : f.FECHA; }
   function quienHecho(f){ return (esEncargo(f) ? f.RESUELTO_POR : f.CARGADO_POR) || "—"; }
-  function fotoHecho(f){ return esEncargo(f) ? f.FOTO_ARREGLO : f.FOTO; }
+  // Cuando se corrige un trabajo hecho (por ejemplo, de plantas a limpieza), la planilla
+  // no deja cambiar la fila: se borra y se carga de nuevo. Para no perder las fotos, sus
+  // enlaces viajan dentro de la observación como [foto: ...] y [antes: ...].
+  var RX_FOTO = /\s*\[foto: ([^\]\s]+)\]/, RX_ANTES = /\s*\[antes: ([^\]\s]+)\]/;
+  function enObs(rx, f){ var m = String(f.OBSERVACION||"").match(rx); return m ? m[1] : ""; }
+  function fotoHecho(f){ return esEncargo(f) ? f.FOTO_ARREGLO : (f.FOTO || enObs(RX_FOTO, f)); }
   // solo los encargos pueden tener foto del antes: la saca el que encarga el trabajo
-  function fotoAntes(f){ return esEncargo(f) ? (f.FOTO||"") : ""; }
-  function notaHecho(f){ return (esEncargo(f) ? f.NOTA_ARREGLO : f.OBSERVACION) || ""; }
+  function fotoAntes(f){ return esEncargo(f) ? (f.FOTO||"") : enObs(RX_ANTES, f); }
+  function notaHecho(f){
+    if (esEncargo(f)) return f.NOTA_ARREGLO || "";
+    return String(f.OBSERVACION||"").replace(RX_FOTO,"").replace(RX_ANTES,"").trim();
+  }
 
   function pintarCuentas(){
     var n = aguas().filter(function(f){ return f.ESTADO!=="RESUELTO"; }).length;
@@ -884,14 +899,14 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
         ? '<a class="chico" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+esc(f.LAT)+','+esc(f.LON)+'">Cómo llegar</a>'
         : '<span class="chico apagado">Sin ubicación</span>';
 
-      var pie;
+      var pie, editarBtn = '<button class="chico" type="button" data-edabrir="'+esc(f.ID)+'">Editar</button>';
       if (f.ESTADO === "RESUELTO"){
         pie = '<div class="obs">Arreglado por '+esc(f.RESUELTO_POR||"—")+' el '+esc(corta(f.FECHA_ARREGLO))
             + (f.NOTA_ARREGLO ? ' · '+esc(f.NOTA_ARREGLO) : '') + '</div>'
-            + bloqueFotos(f) + '<div class="acc">'+mapa+'</div>';
+            + bloqueFotos(f) + '<div class="acc">'+mapa+editarBtn+'</div>';
       } else {
         pie = bloqueFotos(f)
-            + '<div class="acc">'+mapa+'<button class="chico fuerte" type="button" data-fix="'+esc(f.ID)+'">Ya lo arreglé</button></div>'
+            + '<div class="acc">'+mapa+editarBtn+'<button class="chico fuerte" type="button" data-fix="'+esc(f.ID)+'">Ya lo arreglé</button></div>'
             + '<div class="panel-fix" id="fix-'+esc(f.ID)+'" hidden>'
             +   '<div class="foto-caja">'
             +     '<img class="miniatura" id="minifix-'+esc(f.ID)+'" alt="" hidden>'
@@ -921,9 +936,12 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
             +   (f.OBSERVACION ? '<div class="obs">'+esc(f.OBSERVACION)+'</div>' : '')
             +   '<div class="obs">Cargado por '+esc(f.CARGADO_POR||"—")+'</div>'
             +   pie
+            +   (abiertosEd[f.ID] ? panelEd(f) : '')
             + '</div></li>';
     }
+    var vEd = guardarPaneles($("listaTrabajos"));
     $("listaTrabajos").innerHTML = html;
+    devolverPaneles(vEd);
     $("pistaDesliz").hidden = filas.length === 0;
     $("vacioTrabajos").hidden = filas.length>0;
     $("vacioTrabajos").textContent = verEstado==="RESUELTO"
@@ -1011,7 +1029,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       var que = planta ? "Cambiar las plantas" : "Limpiar la pileta";
       html += '<li class="fila-desliz">'
             + '<div class="zona-acciones">'
-            +   '<button class="zona-btn editar" type="button" data-editar="'+esc(f.ID)+'" aria-label="Corregir este encargo">'
+            +   '<button class="zona-btn editar" type="button" data-edabrir="'+esc(f.ID)+'" aria-label="Corregir este encargo">'
             +     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z"/></svg>'
             +     'Editar'
             +   '</button>'
@@ -1046,31 +1064,18 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
             +     '<button class="chico fuerte" type="button" data-confL="'+esc(f.ID)+'">'
             +       (planta ? "Confirmar cambio" : "Confirmar limpieza") + '</button>'
             +   '</div>'
-            +   '<div class="panel-editar" id="edL-'+esc(f.ID)+'" hidden>'
-            +     '<label for="edPot-'+esc(f.ID)+'">Potrero</label>'
-            +     '<input type="text" id="edPot-'+esc(f.ID)+'" list="potreros" value="'+esc(f.POTRERO)+'">'
-            +     '<label for="edFecha-'+esc(f.ID)+'">Fecha</label>'
-            +     '<input type="date" id="edFecha-'+esc(f.ID)+'" value="'+esc(f.FECHA)+'">'
-            +     '<label for="edObs-'+esc(f.ID)+'">Observación</label>'
-            +     '<input type="text" id="edObs-'+esc(f.ID)+'" value="'+esc(f.OBSERVACION||"")+'" placeholder="Si hace falta">'
-            +     (f.FOTO ? '<div class="aviso-foto">Al guardar se pierde la foto de cómo está: hay que sacarla de nuevo.</div>' : '')
-            +     '<button class="chico fuerte" type="button" data-guardaed="'+esc(f.ID)+'">Guardar cambios</button>'
-            +   '</div>'
+            +   (abiertosEd[f.ID] ? panelEd(f) : '')
             + '</div></li>';
     }
     // Si el repintado llega mientras alguien está con un panel abierto, se le cerraba
     // y perdía lo escrito. Guardamos qué tenía abierto y lo devolvemos tal cual.
     var abiertos = {};
-    var pan = $("listaFalta").querySelectorAll(".panel-editar, .panel-fix");
+    var vEd = guardarPaneles($("listaFalta"));
+    var pan = $("listaFalta").querySelectorAll(".panel-fix");
     for (var k=0;k<pan.length;k++){
       if (pan[k].hidden) continue;
-      var pid = pan[k].id.replace("edL-","").replace("fixL-","");
-      abiertos[pan[k].id] = {
-        pot:   $("edPot-"+pid)   ? $("edPot-"+pid).value   : null,
-        fecha: $("edFecha-"+pid) ? $("edFecha-"+pid).value : null,
-        obs:   $("edObs-"+pid)   ? $("edObs-"+pid).value   : null,
-        nota:  $("notaL-"+pid)   ? $("notaL-"+pid).value   : null
-      };
+      var pid = pan[k].id.replace("fixL-","");
+      abiertos[pan[k].id] = { nota: $("notaL-"+pid) ? $("notaL-"+pid).value : null };
     }
 
     $("listaFalta").innerHTML = html;
@@ -1079,11 +1084,8 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       var p = $(pid);
       if (!p) return;
       p.hidden = false;
-      var id = pid.replace("edL-","").replace("fixL-","");
+      var id = pid.replace("fixL-","");
       var v = abiertos[pid];
-      if (v.pot   !== null && $("edPot-"+id))   $("edPot-"+id).value   = v.pot;
-      if (v.fecha !== null && $("edFecha-"+id)) $("edFecha-"+id).value = v.fecha;
-      if (v.obs   !== null && $("edObs-"+id))   $("edObs-"+id).value   = v.obs;
       if (v.nota  !== null && $("notaL-"+id))   $("notaL-"+id).value   = v.nota;
       // si ya había elegido la foto, mostrarla de nuevo
       if (fotosArreglo[id] && $("minilimp-"+id)){
@@ -1093,6 +1095,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       }
     });
 
+    devolverPaneles(vEd);
     $("pistaDeslizF").hidden = filas.length === 0;
     $("vacioFalta").hidden = filas.length > 0;
   }
@@ -1114,6 +1117,13 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
       if (f.CATEGORIA === CAT_PEND) yaMarcados[String(f.POTRERO||"").toUpperCase()] = true;
     });
 
+    var ultPlanta = {};
+    cambiosPlantas().forEach(function(f){
+      var p = String(f.POTRERO||"").toUpperCase(), fe = fechaHecho(f);
+      if (!p || !fe) return;
+      if (!ultPlanta[p] || fe > fechaHecho(ultPlanta[p])) ultPlanta[p] = f;
+    });
+
     // los que solo tuvieron cambio de plantas también se muestran, al final
     var conAlgo = {};
     trabajosOrdenados().forEach(function(f){
@@ -1123,8 +1133,13 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
 
     var hoy = hoyISO(), con = [];
     Object.keys(conAlgo).forEach(function(p){
-      var u = ultima[p];
+      var u = ultima[p], up = ultPlanta[p];
       con.push({ pot:p,
+                 pFecha: up ? fechaHecho(up) : "",
+                 pQuien: up ? quienHecho(up) : "",
+                 pDias:  up ? diasEntre(fechaHecho(up), hoy) : null,
+                 pFoto:  up ? fotoHecho(up) : "",
+                 pNota:  up ? notaHecho(up) : "",
                  fecha: u ? fechaHecho(u) : "",
                  quien: u ? quienHecho(u) : "",
                  dias:  u ? diasEntre(fechaHecho(u), hoy) : null,
@@ -1175,6 +1190,12 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     } else if (x.fecha){
       h += '<div class="pie">Limpiada el '+esc(corta(x.fecha))+' por '+esc(x.quien)
          +   ', pero sin foto cargada.'+(x.nota ? ' '+esc(x.nota) : '')+'</div>';
+    } else if (x.pFoto){
+      h += '<a href="'+esc(x.pFoto)+'" target="_blank" rel="noopener">'
+         +   '<img class="foto-grande" src="'+esc(x.pFoto)+'" alt="Cambio de plantas de '+esc(x.pot)+'" loading="lazy">'
+         + '</a>'
+         + '<div class="pie">Todavía no tiene limpieza cargada. Plantas cambiadas el '+esc(corta(x.pFecha))
+         +   ' por '+esc(x.pQuien)+'.'+(x.pNota ? ' '+esc(x.pNota) : '')+'</div>';
     } else {
       h += '<div class="pie">Todavía no tiene ninguna limpieza cargada.</div>';
     }
@@ -1199,11 +1220,131 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
            +     '<b>'+(planta ? "Cambio de plantas" : "Limpieza")+'</b>'
            +     '<span>'+esc(corta(fechaHecho(f)))+' · '+esc(quienHecho(f))+(no ? ' · '+esc(no) : '')+'</span>'
            +   '</span>'
-           +   '<button type="button" data-borrarT="'+esc(f.ID)+'">Borrar</button>'
-           + '</div>';
+           +   '<span class="btns">'
+           +     '<button type="button" data-edabrir="'+esc(f.ID)+'">Editar</button>'
+           +     '<button type="button" data-borrarT="'+esc(f.ID)+'">Borrar</button>'
+           +   '</span>'
+           + '</div>'
+           + (abiertosEd[f.ID] ? panelEd(f) : '');
       }
     }
     return h + '</div>';
+  }
+
+  // ---------- corregir cualquier carga ----------
+  // Un solo panel para corregir todo: bajas de agua, encargos de limpieza y trabajos hechos.
+  // Cambia la fila en la planilla sin borrarla, así no se pierden las fotos ni el estado.
+  var abiertosEd = {};      // qué paneles de corrección están abiertos
+  var fotosEd = {};         // fotos nuevas elegidas al corregir ("id|foto" o "id|arreglo")
+  var mapasEd = {};         // mapitas abiertos dentro de los paneles
+
+  function tipoDe(f){
+    if (!esBebedero(f)) return "agua";
+    if (esEncargo(f) && f.ESTADO !== "RESUELTO") return "encargo";
+    return "trabajo";
+  }
+
+  function campoTxt(id, nombre, etiqueta, valor, extra){
+    return '<label for="e-'+nombre+'-'+id+'">'+etiqueta+'</label>'
+         + '<input type="text" id="e-'+nombre+'-'+id+'" value="'+esc(valor)+'"'+(extra||'')+'>';
+  }
+  function campoFecha(id, nombre, etiqueta, valor){
+    return '<label for="e-'+nombre+'-'+id+'">'+etiqueta+'</label>'
+         + '<input type="date" id="e-'+nombre+'-'+id+'" value="'+esc(valor)+'">';
+  }
+  function campoLista(id, nombre, etiqueta, opciones, actual){
+    var h = '<label for="e-'+nombre+'-'+id+'">'+etiqueta+'</label><select id="e-'+nombre+'-'+id+'">';
+    opciones.forEach(function(o){
+      h += '<option value="'+esc(o[0])+'"'+(o[0]===actual?' selected':'')+'>'+esc(o[1])+'</option>';
+    });
+    return h + '</select>';
+  }
+  function campoFoto(id, cual, etiqueta, actual){
+    var k = id+'|'+cual, nueva = fotosEd[k];
+    var src = nueva || actual;
+    return '<label>'+etiqueta+'</label>'
+         + '<div class="foto-ed">'
+         +   (src ? '<img src="'+esc(src)+'" alt="">' : '<span class="sinfoto"></span>')
+         +   '<span class="txt">'+(nueva ? 'Foto nueva lista' : (actual ? 'Foto actual' : 'Sin foto'))+'</span>'
+         +   '<button class="chico" type="button" data-edcam="'+esc(k)+'">Cámara</button>'
+         +   '<button class="chico" type="button" data-edgal="'+esc(k)+'">Galería</button>'
+         + '</div>';
+  }
+
+  function panelEd(f){
+    var id = esc(f.ID), t = tipoDe(f), h = '<div class="panel-editar ed" data-ed="'+id+'">';
+    h += campoTxt(id, "POT", "Potrero", f.POTRERO, ' list="potreros"');
+
+    if (t === "agua"){
+      h += campoLista(id, "CAT", "Tipo de problema", TIPOS.map(function(x){ return [x,x]; }), f.CATEGORIA);
+      h += campoFecha(id, "FECHA", "Fecha", f.FECHA);
+      h += campoTxt(id, "OBS", "Observación", f.OBSERVACION||"", ' placeholder="Si hace falta"');
+      h += '<label for="e-UB-'+id+'">Ubicación</label>'
+         + '<input type="text" id="e-UB-'+id+'" value="'+esc(f.LAT && f.LON ? f.LAT+", "+f.LON : "")+'" placeholder="Sin ubicación">'
+         + '<div class="botones">'
+         +   '<button class="chico" type="button" data-edgps="'+id+'">Estoy acá (GPS)</button>'
+         +   '<button class="chico" type="button" data-edmapa="'+id+'">Elegir en el mapa</button>'
+         + '</div>'
+         + '<div class="mapa-ed" id="e-MAPA-'+id+'" hidden></div>';
+      h += campoTxt(id, "QUIEN", "Cargado por", f.CARGADO_POR||"");
+      h += campoFoto(id, "foto", "Foto del problema", f.FOTO);
+      if (f.ESTADO === "RESUELTO"){
+        h += campoTxt(id, "RQUIEN", "Arreglado por", f.RESUELTO_POR||"");
+        h += campoFecha(id, "RFECHA", "Fecha del arreglo", f.FECHA_ARREGLO);
+        h += campoTxt(id, "RNOTA", "Qué se hizo", f.NOTA_ARREGLO||"", ' placeholder="Si hace falta"');
+        h += campoFoto(id, "arreglo", "Foto del arreglo", f.FOTO_ARREGLO);
+      }
+    } else if (t === "encargo"){
+      h += campoLista(id, "CAT", "Qué hay que hacer",
+                      [[CAT_PEND,"Limpiar la pileta"],[CAT_PENDP,"Cambiar las plantas"]], f.CATEGORIA);
+      h += campoFecha(id, "FECHA", "Fecha", f.FECHA);
+      h += campoTxt(id, "OBS", "Observación", f.OBSERVACION||"", ' placeholder="Si hace falta"');
+      h += campoTxt(id, "QUIEN", "Encargado por", f.CARGADO_POR||"");
+      h += campoFoto(id, "foto", "Foto de cómo está", f.FOTO);
+    } else {
+      h += campoLista(id, "CAT", "Qué se hizo",
+                      [["L","Limpieza"],["P","Cambio de plantas"],["LP","Las dos: limpieza y plantas"]],
+                      esDePlantas(f) ? "P" : "L");
+      h += campoFecha(id, "FECHA", "Fecha", fechaHecho(f));
+      h += campoTxt(id, "QUIEN", "Hecho por", quienHecho(f) === "—" ? "" : quienHecho(f));
+      h += campoTxt(id, "OBS", "Nota", notaHecho(f), ' placeholder="Si hace falta"');
+      h += campoFoto(id, esEncargo(f) ? "arreglo" : "foto", "Foto del trabajo", fotoHecho(f));
+    }
+
+    return h + '<div class="botones">'
+             +   '<button class="chico" type="button" data-edcerrar="'+id+'">Cancelar</button>'
+             +   '<button class="chico fuerte" type="button" data-edguardar="'+id+'">Guardar cambios</button>'
+             + '</div></div>';
+  }
+
+  // Al repintar una lista se perdía lo escrito en un panel abierto. Esto lo guarda y lo devuelve.
+  function guardarPaneles(cont){
+    var v = {}, ins = cont.querySelectorAll(".panel-editar.ed input, .panel-editar.ed select");
+    for (var i=0;i<ins.length;i++) v[ins[i].id] = ins[i].value;
+    return v;
+  }
+  function devolverPaneles(v){
+    Object.keys(v).forEach(function(k){ var el = $(k); if (el) el.value = v[k]; });
+    Object.keys(mapasEd).forEach(function(id){ if (abiertosEd[id]) abrirMapaEd(id, true); });
+  }
+
+  function abrirMapaEd(id, reabrir){
+    var div = $("e-MAPA-"+id);
+    if (!div) return;
+    if (!reabrir && !div.hidden){ div.hidden = true; delete mapasEd[id]; return; }
+    if (!window.L){ aviso("El mapa necesita internet. Sin señal, escribí las coordenadas.", true); return; }
+    div.hidden = false;
+    var p = leerCoordManual($("e-UB-"+id).value);
+    var m = L.map(div).setView(p ? [Number(p.lat), Number(p.lon)] : CENTRO, p ? 16 : 12);
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                { maxZoom:19, attribution:"Esri" }).addTo(m);
+    var mk = p ? L.marker([Number(p.lat), Number(p.lon)]).addTo(m) : null;
+    m.on("click", function(e){
+      if (mk) mk.setLatLng(e.latlng); else mk = L.marker(e.latlng).addTo(m);
+      $("e-UB-"+id).value = e.latlng.lat.toFixed(6) + ", " + e.latlng.lng.toFixed(6);
+    });
+    mapasEd[id] = m;
+    setTimeout(function(){ m.invalidateSize(); }, 200);
   }
 
   function pintarPorPotrero(){
@@ -1220,25 +1361,34 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     h += '<p class="mapa-nota" style="padding:6px 0 0;margin:0">En rojo, las que pasaron los '
        + DIAS_ALERTA + ' días. Tocá una pileta para ver la foto.</p><ul class="lista">';
 
+    function diasTxt(d){ return d === null ? "" : d <= 0 ? "hoy" : d === 1 ? "hace 1 día" : "hace "+d+" días"; }
+
+    var vEd = guardarPaneles($("limpPotrero"));
+
     for (var i=0;i<con.length;i++){
       var x = con[i], abierto = (abiertoPot === x.pot);
-      var cuanto = x.dias === null ? "Sin limpieza"
-                 : x.dias <= 0 ? '<b>Hoy</b>'
-                 : x.dias === 1 ? '<b>1</b> día'
-                 : '<b>'+x.dias+'</b> días';
-      var color = x.dias === null ? "--line"
+      var dd = x.dias === null ? x.pDias : x.dias;   // sin limpieza: los días desde las plantas
+      var cuanto = dd === null ? "—"
+                 : dd <= 0 ? '<b>Hoy</b>'
+                 : dd === 1 ? '<b>1</b> día'
+                 : '<b>'+dd+'</b> días';
+      if (x.dias === null && dd !== null) cuanto += ' <small>(plantas)</small>';
+      var color = x.dias === null ? "--s2"
                 : x.dias >= DIAS_ALERTA ? "--malo"
                 : x.dias >= DIAS_ALERTA - 10 ? "--alerta" : "--ok";
       h += '<li class="item franja'+(abierto?" abierta":"")+'" style="--c:var('+color+')" '
          +     'data-pot="'+esc(x.pot)+'" role="button" tabindex="0" aria-expanded="'+abierto+'">'
          +   '<div class="fila1"><span class="pot">'+esc(x.pot)+'</span>'
          +     '<span class="dias">'+cuanto+'</span>'+FLECHA+'</div>'
-         +   (x.fecha ? '<div class="obs">Última: '+esc(corta(x.fecha))+' · '+esc(x.quien)+'</div>'
-                      : '<div class="obs">Solo cambio de plantas</div>')
+         +   '<div class="obs">Limpieza: '+(x.fecha ? esc(corta(x.fecha))+' · '+esc(x.quien)
+                                                   +' · '+diasTxt(x.dias) : 'nunca')+'</div>'
+         +   '<div class="obs">Plantas: '+(x.pFecha ? esc(corta(x.pFecha))+' · '+esc(x.pQuien)
+                                                   +' · '+diasTxt(x.pDias) : 'nunca')+'</div>'
          +   (abierto ? detalleDe(x) : '')
          + '</li>';
     }
     $("limpPotrero").innerHTML = h + '</ul>';
+    devolverPaneles(vEd);
   }
 
   function pintarLimpieza(){
@@ -1674,6 +1824,9 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
         fotoMarca = b64;
         $("miniMarca").src = b64; $("miniMarca").hidden = false;
         $("fotoTxtM").textContent = "Foto lista";
+      } else if (destino.indexOf("ed:") === 0){
+        fotosEd[destino.slice(3)] = b64;
+        pintarTodo();
       } else {
         fotosArreglo[destino] = b64;
         // la fila puede estar en la lista de pendientes de agua o en la de limpieza
@@ -1855,6 +2008,8 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     var b = t.closest ? t.closest("button[data-marcar]") : null;
     if (b){ marcarPileta(b.getAttribute("data-marcar")); return; }
 
+    if (t.closest && t.closest(".panel-editar, button[data-edabrir]")) return;   // lo maneja el panel de corrección
+
     // borrar una carga equivocada: hay que tocar dos veces
     var del = t.closest ? t.closest("button[data-borrarT]") : null;
     if (del){
@@ -1890,62 +2045,141 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     pintarPorPotrero();
   });
 
-  // ---------- corregir un encargo ----------
-  // El script de la planilla no sabe corregir una fila: lo que hacemos es borrar la
-  // vieja y cargar una nueva con los datos arreglados. Por eso se pierde la foto.
-  function editarEncargo(id){
+  // ---------- guardar una corrección ----------
+  function val(nombre, id){ var el = $("e-"+nombre+"-"+id); return el ? el.value.trim() : null; }
+
+  function guardarEdicion(id){
     var f = datos.filter(function(x){ return String(x.ID) === String(id); })[0];
     if (!f) return;
-    var pot = ($("edPot-"+id) ? $("edPot-"+id).value : "").trim().toUpperCase();
+    var t = tipoDe(f), c = {}, extra = null;
+    var pot = (val("POT", id) || "").toUpperCase();
     if (!pot){ aviso("Falta el potrero", true); return; }
-    var fecha = ($("edFecha-"+id) ? $("edFecha-"+id).value : "") || f.FECHA || hoyISO();
-    var obs = ($("edObs-"+id) ? $("edObs-"+id).value : "").trim();
+    c.POTRERO = pot;
 
-    if (pot === String(f.POTRERO).toUpperCase() && fecha === f.FECHA && obs === (f.OBSERVACION||"")){
-      aviso("No cambiaste nada");
-      return;
+    if (t === "agua" || t === "encargo"){
+      c.CATEGORIA = val("CAT", id);
+      c.FECHA = val("FECHA", id) || f.FECHA;
+      c.OBSERVACION = val("OBS", id);
+      c.CARGADO_POR = val("QUIEN", id);
+      if (t === "agua"){
+        var ub = val("UB", id), p = ub ? leerCoordManual(ub) : null;
+        if (ub && !p){ aviso("La ubicación no se entiende. Usá el mapa.", true); return; }
+        c.LAT = p ? p.lat : ""; c.LON = p ? p.lon : "";
+        if (f.ESTADO === "RESUELTO"){
+          c.RESUELTO_POR = val("RQUIEN", id);
+          c.FECHA_ARREGLO = val("RFECHA", id) || f.FECHA_ARREGLO;
+          c.NOTA_ARREGLO = val("RNOTA", id);
+        }
+      }
+    } else {
+      var tipo = val("CAT", id), fecha = val("FECHA", id) || fechaHecho(f);
+      var quien = val("QUIEN", id), nota = val("OBS", id);
+      var planta = tipo === "P";
+      if (esEncargo(f)){
+        c.CATEGORIA = planta ? CAT_PENDP : CAT_PEND;
+        c.FECHA_ARREGLO = fecha; c.RESUELTO_POR = quien; c.NOTA_ARREGLO = nota;
+      } else {
+        c.CATEGORIA = planta ? CAT_PLANTAS : CAT_LIMP;
+        c.FECHA = fecha; c.CARGADO_POR = quien;
+        // las fotos guardadas dentro de la observación no se tocan
+        var m1 = String(f.OBSERVACION||"").match(RX_ANTES), m2 = String(f.OBSERVACION||"").match(RX_FOTO);
+        c.OBSERVACION = (nota + (m1 ? m1[0] : "") + (m2 ? m2[0] : "")).trim();
+      }
+      // "las dos": además se carga el otro trabajo, con las mismas fotos
+      if (tipo === "LP"){
+        var fo = fotoHecho(f), an = fotoAntes(f);
+        var nid = String(Date.now())+String(Math.floor(Math.random()*1000));
+        var obsX = (nota + (an ? " [antes: "+an+"]" : "") + (fo ? " [foto: "+fo+"]" : "")).trim();
+        extra = { accion:"nueva", fila:{ id:tal(nid), fecha:tal(fecha), potrero:pot, categoria:CAT_PLANTAS,
+                  obs:obsX, lat:"", lon:"", autor:quien, foto:"" } };
+        datos.push({ ID:nid, FECHA:fecha, POTRERO:pot, CATEGORIA:CAT_PLANTAS, OBSERVACION:obsX,
+                     LAT:"", LON:"", CARGADO_POR:quien, ESTADO:"PENDIENTE",
+                     RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"", FOTO:"", FOTO_ARREGLO:"" });
+      }
     }
 
-    var nuevoId = String(Date.now())+String(Math.floor(Math.random()*1000));
-    var pBorrar = { accion:"borrar", id:id };
-    var pNueva  = { accion:"nueva", fila:{
-      id:tal(nuevoId), fecha:tal(fecha), potrero:pot, categoria:f.CATEGORIA,
-      obs:obs, lat:"", lon:"", autor:autor, foto:""
-    }};
+    // solo se manda lo que cambió
+    var cambios = {}, hay = false;
+    Object.keys(c).forEach(function(k){
+      if (c[k] !== null && String(c[k]) !== String(f[k]||"")){ cambios[k] = c[k]; hay = true; }
+    });
+    var foto = fotosEd[id+"|foto"] || "", fotoArr = fotosEd[id+"|arreglo"] || "";
+    if (!hay && !foto && !fotoArr && !extra){ aviso("No cambiaste nada"); return; }
 
-    for (var i=0;i<datos.length;i++){
-      if (String(datos[i].ID) === String(id)) datos[i].ESTADO = "BORRADO";
-    }
-    datos.push({ ID:nuevoId, FECHA:fecha, POTRERO:pot, CATEGORIA:f.CATEGORIA, OBSERVACION:obs,
-                 LAT:"", LON:"", CARGADO_POR:autor, ESTADO:"PENDIENTE",
-                 RESUELTO_POR:"", FECHA_ARREGLO:"", NOTA_ARREGLO:"", FOTO:"", FOTO_ARREGLO:"" });
+    var payload = { accion:"editar", id:id, campos:{}, foto:foto, fotoArreglo:fotoArr };
+    Object.keys(cambios).forEach(function(k){
+      payload.campos[k] = (k === "FECHA" || k === "FECHA_ARREGLO") ? tal(cambios[k]) : cambios[k];
+      f[k] = cambios[k];
+    });
+    if (foto) f.FOTO = foto;
+    if (fotoArr) f.FOTO_ARREGLO = fotoArr;
+    delete fotosEd[id+"|foto"]; delete fotosEd[id+"|arreglo"];
+    delete abiertosEd[id]; delete mapasEd[id];
+    if (t === "trabajo") abiertoPot = pot;
     guardar(K_CACHE, datos);
-    pintarLimpieza(); pintarCuentas();
+    pintarTodo();
     aviso("Corregido: " + pot);
 
-    mandar(pBorrar)
-      .then(function(){ return mandar(pNueva); })
-      .then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
+    var envios = extra ? [payload, extra] : [payload], n = 0;
+    function paso(){
+      if (n >= envios.length) return Promise.resolve();
+      return mandar(envios[n]).then(function(j){
+        // si la planilla todavía no sabe corregir, la fila vuelve como estaba
+        if (envios[n] === payload && j && j.filas){
+          var g = datos.filter(function(x){ return String(x.ID) === String(id); })[0];
+          var malo = g && Object.keys(cambios).some(function(k){ return String(g[k]||"") !== String(cambios[k]); });
+          if (malo) aviso("La planilla no guardó la corrección: falta actualizar su código", true);
+        }
+        n++; return paso();
+      });
+    }
+    paso().then(function(){ marcarEstado(true,"Al día"); pintarTodo(); })
       .catch(function(){
-        encolar(pBorrar).then(function(){ return encolar(pNueva); });
+        var c2 = Promise.resolve();
+        envios.slice(n).forEach(function(p){ c2 = c2.then(function(){ return encolar(p); }); });
         marcarEstado(false, "Esperando señal");
       });
   }
+
+  // Los botones de los paneles de corrección, estén en la lista que estén.
+  document.addEventListener("click", function(ev){
+    var t = ev.target, b;
+    if (!t.closest) return;
+    if ((b = t.closest("button[data-edabrir]"))){
+      var ia = b.getAttribute("data-edabrir");
+      if (abiertosEd[ia]) delete abiertosEd[ia]; else abiertosEd[ia] = true;
+      delete mapasEd[ia];
+      cerrarTodas();
+      pintarTodo();
+      return;
+    }
+    if ((b = t.closest("button[data-edcerrar]"))){
+      var ic = b.getAttribute("data-edcerrar");
+      delete abiertosEd[ic]; delete mapasEd[ic];
+      delete fotosEd[ic+"|foto"]; delete fotosEd[ic+"|arreglo"];
+      pintarTodo(); return;
+    }
+    if ((b = t.closest("button[data-edguardar]"))){ guardarEdicion(b.getAttribute("data-edguardar")); return; }
+    if ((b = t.closest("button[data-edcam]"))){ pedirFoto("ed:"+b.getAttribute("data-edcam"), true); return; }
+    if ((b = t.closest("button[data-edgal]"))){ pedirFoto("ed:"+b.getAttribute("data-edgal"), false); return; }
+    if ((b = t.closest("button[data-edmapa]"))){ abrirMapaEd(b.getAttribute("data-edmapa")); return; }
+    if ((b = t.closest("button[data-edgps]"))){
+      var ig = b.getAttribute("data-edgps");
+      if (!navigator.geolocation){ aviso("Este teléfono no da ubicación", true); return; }
+      aviso("Buscando señal del GPS...");
+      navigator.geolocation.getCurrentPosition(function(p){
+        if ($("e-UB-"+ig)) $("e-UB-"+ig).value = p.coords.latitude.toFixed(6)+", "+p.coords.longitude.toFixed(6);
+        aviso("Ubicación tomada");
+      }, function(){ aviso("No se pudo tomar la ubicación. Usá el mapa.", true); },
+      { enableHighAccuracy:true, timeout:20000, maximumAge:0 });
+    }
+  });
 
   // ---------- cerrar una pileta marcada ----------
   $("listaFalta").addEventListener("click", function(ev){
     var del = ev.target.closest ? ev.target.closest("button[data-borrar]") : null;
     if (del){ borrarCarga(del.getAttribute("data-borrar")); return; }
 
-    var ed = ev.target.closest ? ev.target.closest("button[data-editar]") : null;
-    if (ed){
-      var pe = $("edL-"+ed.getAttribute("data-editar"));
-      if (pe) pe.hidden = !pe.hidden;
-      cerrarTodas();          // vuelve la tarjeta a su lugar para que se vea el panel
-      return;
-    }
-    var gu = ev.target.closest ? ev.target.closest("button[data-guardaed]") : null;
-    if (gu){ editarEncargo(gu.getAttribute("data-guardaed")); return; }
 
     var abrir = ev.target.closest ? ev.target.closest("button[data-limp]") : null;
     if (abrir){
@@ -2063,7 +2297,7 @@ nav.tabs .cuenta{position:absolute;top:2px;right:5px;
     var cont = $(nombre);
 
     cont.addEventListener("pointerdown", function(ev){
-      if (ev.target.closest && ev.target.closest("button, a, input, textarea")) return;
+      if (ev.target.closest && ev.target.closest("button, a, input, textarea, select, .panel-editar")) return;
       var t = tarjeta(ev.target);
       if (!t || !t.parentNode || !t.parentNode.classList.contains("fila-desliz")) return;
       arr = { el:t, x0:ev.clientX, y0:ev.clientY, dx:0, activo:false };
